@@ -72,6 +72,9 @@ class AP_GPS
 public:
     AP_GPS();
 
+ // Установка внешних GPS-координат
+    void set_external_position(float lat, float lon, float alt, float speed, uint8_t status);
+
     /* Do not allow copies */
     CLASS_NO_COPY(AP_GPS);
 
