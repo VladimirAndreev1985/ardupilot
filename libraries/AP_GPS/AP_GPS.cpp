@@ -2168,6 +2168,19 @@ AP_GPS &gps()
     return *AP_GPS::get_singleton();
 }
 
+void AP_GPS::set_external_position(float lat, float lon, float alt, float speed, uint8_t status) 
+{
+    // Установить новые внешние координаты
+    state[0].location.lat = static_cast<int32_t>(lat * 1e7);
+    state[0].location.lng = static_cast<int32_t>(lon * 1e7);
+    state[0].location.alt = static_cast<int32_t>(alt * 100);
+
+    // Обновить скорость и статус
+    state[0].ground_speed = speed;
+    state[0].status = static_cast<GPS_Status>(status);
+    
+    // Обновить время
+    state[0].last_gps_time_ms = AP_HAL::millis();
 };
 
 #endif  // AP_GPS_ENABLED
