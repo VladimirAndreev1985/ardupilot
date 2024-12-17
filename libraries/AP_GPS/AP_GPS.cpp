@@ -318,18 +318,6 @@ const AP_Param::GroupInfo AP_GPS::var_info[] = {
 };
 
 // constructor
-AP_GPS::AP_GPS()
-{
-    static_assert((sizeof(_initialisation_blob) * (CHAR_BIT + 2)) < (4800 * GPS_BAUD_TIME_MS * 1e-3),
-                    "GPS initilisation blob is too large to be completely sent before the baud rate changes");
-
-    AP_Param::setup_object_defaults(this, var_info);
-
-    if (_singleton != nullptr) {
-        AP_HAL::panic("AP_GPS must be singleton");
-    }
-    _singleton = this;
-}
 
 // return true if a specific type of GPS uses a UART
 bool AP_GPS::needs_uart(GPS_Type type) const
