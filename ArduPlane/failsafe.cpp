@@ -22,7 +22,7 @@
 static uint32_t failsafe_timer = 0;
 
 void Plane::check_attitude_failsafe() {
-    if (!failsafe.triggered) {
+    if (failsafe.state != FAILSAFE_NONE) { // Изменено с failsafe.triggered
         float roll = attitude_control.get_roll();
         float pitch = attitude_control.get_pitch();
         
