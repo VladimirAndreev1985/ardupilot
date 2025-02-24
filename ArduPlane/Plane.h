@@ -1299,6 +1299,7 @@ private:
 public:
     void failsafe_check(void);
     void check_attitude_failsafe();  // Добавляем объявление функции
+    void activate_parachute();  // Добавляем объявление
     bool is_landing() const override;
     bool is_taking_off() const override;
 #if AP_SCRIPTING_ENABLED || AP_EXTERNAL_CONTROL_ENABLED
