@@ -208,6 +208,10 @@ private:
     int32_t roll_limit_cd;
     float pitch_limit_min;
 
+    // Parachute limits
+    AP_Int16 parachute_roll_limit;
+    AP_Int16 parachute_pitch_limit;
+
     // flight modes convenience array
     AP_Int8 *flight_modes = &g.flight_mode1;
     const uint8_t num_flight_modes = 6;
