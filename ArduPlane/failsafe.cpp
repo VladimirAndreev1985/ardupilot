@@ -14,6 +14,37 @@
  *  this failsafe_check function is called from the core timer interrupt
  *  at 1kHz.
  */
+
+#define MAX_ROLL_ANGLE  75  // Максимальный крен (градусы)
+#define MAX_PITCH_ANGLE 60  // Максимальный тангаж (градусы)
+#define FAILSAFE_TIMEOUT_MS 500  // Время превышения пределов перед срабатыванием (мс)
+
+static uint32_t failsafe_timer = 0;
+
+void Plane::check_attitude_failsafe() {
+    if (!failsafe.triggered) {
+        float roll = attitude_control.get_roll();
+        float pitch = attitude_control.get_pitch();
+        
+        if (fabsf(roll) > MAX_ROLL_ANGLE || fabsf(pitch) > MAX_PITCH_ANGLE) {
+            if (failsafe_timer == 0) {
+                failsafe_timer = AP_HAL::millis();
+            }
+            if (AP_HAL::millis() - failsafe_timer > FAILSAFE_TIMEOUT_MS) {
+                activate_parachute();
+            }
+        } else {
+            failsafe_timer = 0;
+        }
+    }
+}
+
+void Plane::activate_parachute() {
+    failsafe.triggered = true;
+    chute_deploy();
+    gcs().send_text(MAV_SEVERITY_CRITICAL, "Failsafe: Excessive Roll/Pitch, deploying parachute!");
+}
+
 void Plane::failsafe_check(void)
 {
     static uint16_t last_ticks;
@@ -23,7 +54,6 @@ void Plane::failsafe_check(void)
 
     const uint16_t ticks = scheduler.ticks();
     if (ticks != last_ticks) {
-        // the main loop is running, all is OK
         last_ticks = ticks;
         last_timestamp = tnow;
         in_failsafe = false;
@@ -31,36 +61,24 @@ void Plane::failsafe_check(void)
     }
 
     if (tnow - last_timestamp > 200000) {
-        // we have gone at least 0.2 seconds since the main loop
-        // ran. That means we're in trouble, or perhaps are in
-        // an initialisation routine or log erase. Start passing RC
-        // inputs through to outputs
         in_failsafe = true;
     }
 
     if (in_failsafe && tnow - last_timestamp > 20000) {
-
-        // ensure we have the latest RC inputs
         rc().read_input();
-
         last_timestamp = tnow;
-
         rc().read_input();
 
 #if AP_ADVANCEDFAILSAFE_ENABLED
         if (in_calibration) {
-            // tell the failsafe system that we are calibrating
-            // sensors, so don't trigger failsafe
             afs.heartbeat();
         }
 #endif
 
         if (RC_Channels::get_valid_channel_count() < 5) {
-            // we don't have any RC input to pass through
             return;
         }
 
-        // pass RC inputs to outputs every 20ms
         RC_Channels::clear_overrides();
 
         float roll = roll_in_expo(false);
@@ -72,17 +90,12 @@ void Plane::failsafe_check(void)
             throttle = 0;
         }
         
-        // setup secondary output channels that don't have
-        // corresponding input channels
         SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, roll);
         SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, pitch);
         SRV_Channels::set_output_scaled(SRV_Channel::k_rudder, rudder);
         SRV_Channels::set_output_scaled(SRV_Channel::k_steering, rudder);
         SRV_Channels::set_output_scaled(SRV_Channel::k_throttle, throttle);
 
-        // this is to allow the failsafe module to deliberately crash 
-        // the plane. Only used in extreme circumstances to meet the
-        // OBC rules
 #if AP_ADVANCEDFAILSAFE_ENABLED
         if (afs.should_crash_vehicle()) {
             afs.terminate_vehicle();
@@ -92,19 +105,13 @@ void Plane::failsafe_check(void)
         }
 #endif
 
-        // setup secondary output channels that do have
-        // corresponding input channels
         SRV_Channels::copy_radio_in_out(SRV_Channel::k_manual, true);
         SRV_Channels::set_output_scaled(SRV_Channel::k_flap, 0.0);
         SRV_Channels::set_output_scaled(SRV_Channel::k_flap_auto, 0.0);
 
-        // setup flaperons
         flaperon_update();
-
         servos_output();
 
-        // in SITL we send through the servo outputs so we can verify
-        // we're manipulating surfaces
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
         GCS_MAVLINK *chan = gcs().chan(0);
         if (HAVE_PAYLOAD_SPACE(chan->get_chan(), SERVO_OUTPUT_RAW)) {
@@ -112,4 +119,6 @@ void Plane::failsafe_check(void)
         }
 #endif
     }
+    
+    check_attitude_failsafe();
 }
