@@ -222,6 +222,7 @@ public:
         k_param_crosstrack_use_wind, // unused
         k_param_parachute_roll_limit,  // Новый параметр крена для парашюта
         k_param_parachute_pitch_limit, // Новый параметр тангажа для парашюта
+        k_param_parachute_timeout_ms,
 
 
         //
