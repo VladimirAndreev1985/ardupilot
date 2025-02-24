@@ -1,6 +1,5 @@
 #include "Plane.h"
 
-
 /* 
    call parachute library update
 */
@@ -65,4 +64,16 @@ bool Plane::parachute_manual_release()
 #endif
     return true;    
 }
+
+/*
+  activate_parachute - triggers parachute deployment due to failsafe conditions
+*/
+void Plane::activate_parachute() {
+    if (!parachute.enabled() || parachute.released()) {
+        return;
+    }
+    parachute_release();
+    gcs().send_text(MAV_SEVERITY_CRITICAL, "Failsafe: Excessive Roll/Pitch, deploying parachute!");
+}
+
 #endif
