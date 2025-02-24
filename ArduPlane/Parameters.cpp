@@ -237,6 +237,24 @@ const AP_Param::Info Plane::var_info[] = {
     // @User: Standard
     GSCALAR(level_roll_limit,              "LEVEL_ROLL_LIMIT",   5),
 
+    // @Param: PARACHUTE_ROLL_LIMIT
+    // @DisplayName: Parachute Roll Limit
+    // @Description: Maximum allowed roll angle for parachute deployment
+    // @Units: deg
+    // @Range: 0 180
+    // @Increment: 1
+    // @User: Advanced
+    GSCALAR(parachute_roll_limit, "PARACHUTE_ROLL_LIMIT", 30),
+
+    // @Param: PARACHUTE_PITCH_LIMIT
+    // @DisplayName: Parachute Pitch Limit
+    // @Description: Maximum allowed pitch angle for parachute deployment
+    // @Units: deg
+    // @Range: -90 90
+    // @Increment: 1
+    // @User: Advanced
+    GSCALAR(parachute_pitch_limit, "PARACHUTE_PITCH_LIMIT", 20),
+
     // @Param: USE_REV_THRUST
     // @DisplayName: Bitmask for when to allow negative reverse thrust
     // @Description: This controls when to use reverse thrust. If set to zero then reverse thrust is never used. If set to a non-zero value then the bits correspond to flight stages where reverse thrust may be used. The most commonly used value for USE_REV_THRUST is 2, which means AUTO_LAND only. That enables reverse thrust in the landing stage of AUTO mode. Another common choice is 1, which means to use reverse thrust in all auto flight stages. Reverse thrust is always used in MANUAL mode if enabled with THR_MIN < 0. In non-autothrottle controlled modes, if reverse thrust is not used, then THR_MIN is effectively set to 0 for that mode.
