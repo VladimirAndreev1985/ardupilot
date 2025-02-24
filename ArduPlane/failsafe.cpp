@@ -15,18 +15,19 @@
  *  at 1kHz.
  */
 
-#define MAX_ROLL_ANGLE  75  // Максимальный крен (градусы)
-#define MAX_PITCH_ANGLE 60  // Максимальный тангаж (градусы)
-#define FAILSAFE_TIMEOUT_MS 500  // Время превышения пределов перед срабатыванием (мс)
 
 static uint32_t failsafe_timer = 0;
 
 void Plane::check_attitude_failsafe() {
-    if (failsafe.state != FAILSAFE_NONE) { // Изменено с failsafe.triggered
+    if (failsafe.state != FAILSAFE_NONE) { 
         float roll = ahrs.roll_sensor * 0.01f;   // В градусах
         float pitch = ahrs.pitch_sensor * 0.01f; // В градусах
         
-        if (fabsf(roll) > MAX_ROLL_ANGLE || fabsf(pitch) > MAX_PITCH_ANGLE) {
+        // Берём значения из параметров вместо фиксированных констант
+        float max_roll = g.parachute_roll_limit.get();
+        float max_pitch = g.parachute_pitch_limit.get();
+
+        if (fabsf(roll) > max_roll || fabsf(pitch) > max_pitch) {
             if (failsafe_timer == 0) {
                 failsafe_timer = AP_HAL::millis();
             }
