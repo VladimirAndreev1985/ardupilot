@@ -23,8 +23,8 @@ static uint32_t failsafe_timer = 0;
 
 void Plane::check_attitude_failsafe() {
     if (failsafe.state != FAILSAFE_NONE) { // Изменено с failsafe.triggered
-        float roll = attitude_control.get_roll();
-        float pitch = attitude_control.get_pitch();
+        float roll = ahrs.roll_sensor * 0.01f;   // В градусах
+        float pitch = ahrs.pitch_sensor * 0.01f; // В градусах
         
         if (fabsf(roll) > MAX_ROLL_ANGLE || fabsf(pitch) > MAX_PITCH_ANGLE) {
             if (failsafe_timer == 0) {
