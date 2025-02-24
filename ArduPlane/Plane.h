@@ -211,7 +211,7 @@ private:
     // Parachute limits
     AP_Int16 parachute_roll_limit;
     AP_Int16 parachute_pitch_limit;
-    AP_Int16 parachute_timeout_ms;
+    AP_Int32 parachute_timeout_ms;
 
     // flight modes convenience array
     AP_Int8 *flight_modes = &g.flight_mode1;
