@@ -40,8 +40,8 @@ void Plane::check_attitude_failsafe() {
 }
 
 void Plane::activate_parachute() {
-    failsafe.triggered = true;
-    chute_deploy();
+    failsafe.state = FAILSAFE_ACTION_PARACHUTE; // Устанавливаем состояние
+    parachute_release();
     gcs().send_text(MAV_SEVERITY_CRITICAL, "Failsafe: Excessive Roll/Pitch, deploying parachute!");
 }
 
