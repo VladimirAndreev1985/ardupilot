@@ -255,7 +255,7 @@ const AP_Param::Info Plane::var_info[] = {
     // @User: Advanced
     GSCALAR(parachute_pitch_limit, "PARACHUTE_PITCH_LIMIT", 20),
 
-    AP_GROUPINFO("PARA_TIMEOUT",  0, Parameters, parachute_timeout_ms, 500),
+    GSCALAR(parachute_timeout_ms, "PARA_TIMEOUT", 500),
 
     // @Param: USE_REV_THRUST
     // @DisplayName: Bitmask for when to allow negative reverse thrust
