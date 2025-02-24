@@ -31,7 +31,7 @@ void Plane::check_attitude_failsafe() {
             if (failsafe_timer == 0) {
                 failsafe_timer = AP_HAL::millis();
             }
-            if (AP_HAL::millis() - failsafe_timer > g.parachute_timeout_ms) {
+            if (AP_HAL::millis() - failsafe_timer > g.parachute_timeout_ms.get()) {
                 activate_parachute();
             }
         } else {
