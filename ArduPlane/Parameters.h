@@ -440,6 +440,7 @@ public:
     AP_Int8  acro_locking;
     AP_Int16 parachute_roll_limit;
     AP_Int16 parachute_pitch_limit;
+    AP_Int16 parachute_timeout_ms;
 
     // Misc
     //
