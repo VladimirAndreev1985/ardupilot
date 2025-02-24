@@ -220,6 +220,8 @@ public:
         k_param_inverted_flight_ch_unused, // unused
         k_param_min_groundspeed,
         k_param_crosstrack_use_wind, // unused
+        k_param_parachute_roll_limit,  // Новый параметр крена для парашюта
+        k_param_parachute_pitch_limit, // Новый параметр тангажа для парашюта
 
 
         //
@@ -436,6 +438,8 @@ public:
     AP_Int16 acro_pitch_rate;
     AP_Int16 acro_yaw_rate;
     AP_Int8  acro_locking;
+    AP_Int16 parachute_roll_limit;
+    AP_Int16 parachute_pitch_limit;
 
     // Misc
     //
