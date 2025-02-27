@@ -228,17 +228,17 @@ public:
         //
         // Camera and mount parameters
         //
-        k_param_camera = 160,
+        k_param_camera = 163,
         k_param_camera_mount,
         k_param_camera_mount2,      // unused
         k_param_adsb,
         k_param_notify,
-        k_param_land_pre_flare_sec = 165,   // unused - moved to AP_Landing
+        k_param_land_pre_flare_sec = 168,   // unused - moved to AP_Landing
 
         //
         // Battery monitoring parameters
         //
-        k_param_battery = 166,
+        k_param_battery = 169,
         k_param_rssi_pin,               // unused, replaced by rssi_ library parameters - 167
         k_param_battery_volt_pin,       // unused - 168
         k_param_battery_curr_pin,       // unused - 169
@@ -246,7 +246,7 @@ public:
         //
         // 170: Radio settings - all unused now
         //
-        k_param_rc_1_old = 170,
+        k_param_rc_1_old = 173,
         k_param_rc_2_old,
         k_param_rc_3_old,
         k_param_rc_4_old,
@@ -282,7 +282,7 @@ public:
         //
         // 200: Feed-forward gains
         //
-        k_param_kff_pitch_compensation = 200, // unused
+        k_param_kff_pitch_compensation = 203, // unused
         k_param_kff_rudder_mix,
         k_param_kff_pitch_to_throttle, // unused
         k_param_kff_throttle_to_pitch,
@@ -296,7 +296,7 @@ public:
         //
         // 210: flight modes
         //
-        k_param_flight_mode_channel = 210,
+        k_param_flight_mode_channel = 213,
         k_param_flight_mode1,
         k_param_flight_mode2,
         k_param_flight_mode3,
@@ -310,7 +310,7 @@ public:
         //
         // 220: Waypoint data
         //
-        k_param_waypoint_mode = 220, // unused
+        k_param_waypoint_mode = 223, // unused
         k_param_command_total,  // unused
         k_param_command_index,  // unused
         k_param_waypoint_radius,
@@ -322,7 +322,7 @@ public:
         k_param_fence_maxalt,
 
         // other objects
-        k_param_sitl = 230,
+        k_param_sitl = 233,
         k_param_afs,
         k_param_rollController,
         k_param_pitchController,
@@ -335,7 +335,7 @@ public:
 
         //
         // 240: PID Controllers
-        k_param_pidNavRoll = 240, // unused
+        k_param_pidNavRoll = 243, // unused
         k_param_pidServoRoll, // unused
         k_param_pidServoPitch, // unused
         k_param_pidNavPitchAirspeed, // unused
@@ -348,11 +348,11 @@ public:
         k_param_dspoiler_rud_rate,
         k_param_airspeed_stall,
 
-        k_param_logger = 253, // Logging Group
+        k_param_logger = 256, // Logging Group
 
         // 254,255: reserved
 
-        k_param_vehicle = 257, // vehicle common block of parameters
+        k_param_vehicle = 260, // vehicle common block of parameters
         k_param_gcs4,          // stream rates
         k_param_gcs5,          // stream rates
         k_param_gcs6,          // stream rates
@@ -364,7 +364,7 @@ public:
         k_param_takeoff_options,
         k_param_takeoff_throttle_idle,
 
-        k_param_pullup = 270,
+        k_param_pullup = 273,
         k_param_quicktune,
         k_param_mode_autoland, 
 
