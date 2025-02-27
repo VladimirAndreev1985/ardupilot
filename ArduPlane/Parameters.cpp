@@ -244,7 +244,7 @@ const AP_Param::Info Plane::var_info[] = {
     // @Range: 0 180
     // @Increment: 1
     // @User: Advanced
-    GSCALAR(parachute_roll_limit, "PARACHUTE_ROLL_LIMIT", 30),
+    GSCALAR(parachute_roll_limit, "CHUTE_ROLL_LIM", 30),
 
     // @Param: PARACHUTE_PITCH_LIMIT
     // @DisplayName: Parachute Pitch Limit
@@ -253,9 +253,9 @@ const AP_Param::Info Plane::var_info[] = {
     // @Range: -90 90
     // @Increment: 1
     // @User: Advanced
-    GSCALAR(parachute_pitch_limit, "PARACHUTE_PITCH_LIMIT", 20),
+    GSCALAR(parachute_pitch_limit, "CHUTE_PITCH_LIM", 20),
 
-    GSCALAR(parachute_timeout_ms, "PARA_TIMEOUT", 500),
+    GSCALAR(parachute_timeout_ms, "CHUTE_TMOUT", 500),
 
     // @Param: USE_REV_THRUST
     // @DisplayName: Bitmask for when to allow negative reverse thrust
