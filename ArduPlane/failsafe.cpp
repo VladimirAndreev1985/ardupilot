@@ -37,7 +37,7 @@ void Plane::check_attitude_failsafe() {
         } else {
             failsafe_timer = 0;
         }
-    }
+//    }
 }
 
 void Plane::activate_parachute() {
