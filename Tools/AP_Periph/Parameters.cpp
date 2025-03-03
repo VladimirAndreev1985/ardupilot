@@ -375,7 +375,7 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
     GSCALAR(adsb_port, "ADSB_PORT", HAL_PERIPH_ADSB_PORT_DEFAULT),
 #endif
 
-#ifdef HAL_PERIPH_ENABLE_PWM_HARDPOINT
+#if AP_PERIPH_PWM_HARDPOINT_ENABLED
     // @Param: HARDPOINT_ID
     // @DisplayName: Hardpoint ID
     // @Description: Hardpoint ID
@@ -543,7 +543,7 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
     GOBJECT(efi, "EFI", AP_EFI),
 #endif
 
-#ifdef HAL_PERIPH_ENABLE_PROXIMITY
+#if AP_PERIPH_PROXIMITY_ENABLED
     // @Param: PRX_BAUDRATE
     // @DisplayName: Proximity Sensor serial baudrate
     // @Description: Proximity Sensor serial baudrate.
@@ -575,7 +575,7 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
     // @Group: PRX
     // @Path: ../libraries/AP_Proximity/AP_Proximity.cpp
     GOBJECT(proximity, "PRX", AP_Proximity),
-#endif  // HAL_PERIPH_ENABLE_PROXIMITY
+#endif  // AP_PERIPH_PROXIMITY_ENABLED
 
 #if HAL_NMEA_OUTPUT_ENABLED
     // @Group: NMEA_
@@ -643,7 +643,7 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
     GOBJECT(battery_balance, "BAL",  BattBalance),
 #endif
 
-#ifdef HAL_PERIPH_ENABLE_SERIAL_OPTIONS
+#if AP_PERIPH_SERIAL_OPTIONS_ENABLED
     // @Group: UART
     // @Path: serial_options.cpp
     GOBJECT(serial_options, "UART",  SerialOptions),

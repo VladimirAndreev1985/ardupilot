@@ -80,7 +80,7 @@ extern AP_Periph_FW periph;
     // especially helpful with HAL_GCS_ENABLED where libraries use the mavlink
     // send_text() method where we support strings up to 256 chars by splitting them
     // up into multiple 50 char mavlink packets.
-    #define HAL_PERIPH_SUPPORT_LONG_CAN_PRINTF (BOARD_FLASH_SIZE >= 1024)
+    #define HAL_PERIPH_SUPPORT_LONG_CAN_PRINTF (HAL_PROGRAM_SIZE_LIMIT_KB >= 1024)
 #endif
 
 static struct instance_t {
@@ -1933,7 +1933,7 @@ void AP_Periph_FW::can_update()
 #if AP_PERIPH_RANGEFINDER_ENABLED
         can_rangefinder_update();
 #endif
-#ifdef HAL_PERIPH_ENABLE_PROXIMITY
+#if AP_PERIPH_PROXIMITY_ENABLED
         can_proximity_update();
 #endif
     #if defined(HAL_PERIPH_ENABLE_BUZZER_WITHOUT_NOTIFY) || AP_PERIPH_NOTIFY_ENABLED
@@ -1945,7 +1945,7 @@ void AP_Periph_FW::can_update()
     #ifdef HAL_GPIO_PIN_SAFE_BUTTON
         can_safety_button_update();
     #endif
-    #ifdef HAL_PERIPH_ENABLE_PWM_HARDPOINT
+    #if AP_PERIPH_PWM_HARDPOINT_ENABLED
         pwm_hardpoint_update();
     #endif
     #if AP_PERIPH_HOBBYWING_ESC_ENABLED

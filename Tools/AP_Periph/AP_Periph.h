@@ -48,7 +48,7 @@
 #include <AP_AHRS/AP_AHRS.h>
 
 #if AP_PERIPH_RELAY_ENABLED
-#ifdef HAL_PERIPH_ENABLE_PWM_HARDPOINT
+#if AP_PERIPH_PWM_HARDPOINT_ENABLED
     #error "Relay and PWM_HARDPOINT both use hardpoint message"
 #endif
 #include <AP_Relay/AP_Relay.h>
@@ -304,11 +304,11 @@ public:
     uint32_t last_rangefinder_sample_ms[RANGEFINDER_MAX_INSTANCES];
 #endif
 
-#ifdef HAL_PERIPH_ENABLE_PROXIMITY
+#if AP_PERIPH_PROXIMITY_ENABLED
     AP_Proximity proximity;
 #endif
 
-#ifdef HAL_PERIPH_ENABLE_PWM_HARDPOINT
+#if AP_PERIPH_PWM_HARDPOINT_ENABLED
     void pwm_irq_handler(uint8_t pin, bool pin_state, uint32_t timestamp);
     void pwm_hardpoint_init();
     void pwm_hardpoint_update();
@@ -384,7 +384,7 @@ public:
     BattBalance battery_balance;
 #endif
 
-#ifdef HAL_PERIPH_ENABLE_SERIAL_OPTIONS
+#if AP_PERIPH_SERIAL_OPTIONS_ENABLED
     SerialOptions serial_options;
 #endif
     
