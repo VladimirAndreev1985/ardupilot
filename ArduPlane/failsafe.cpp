@@ -19,7 +19,7 @@
 static uint32_t failsafe_timer = 0;
 
 void Plane::check_attitude_failsafe() {
-    if (failsafe.state != FAILSAFE_NONE) { 
+//    if (failsafe.state != FAILSAFE_NONE) { 
         float roll = ahrs.roll_sensor * 0.01f;   // В градусах
         float pitch = ahrs.pitch_sensor * 0.01f; // В градусах
         
