@@ -22,9 +22,9 @@ void Plane::parachute_release()
         return;
     }
     if (parachute.released()) {
-        gcs().send_text(MAV_SEVERITY_CRITICAL,"Parachute: Released again");
+        gcs().send_text(MAV_SEVERITY_CRITICAL, "Parachute: Released again");
     } else {
-        gcs().send_text(MAV_SEVERITY_CRITICAL,"Parachute: Released");
+        gcs().send_text(MAV_SEVERITY_CRITICAL, "Parachute: Released");
     }
 
     // release parachute
@@ -34,6 +34,16 @@ void Plane::parachute_release()
     // deploy landing gear
     g2.landing_gear.set_position(AP_LandingGear::LandingGear_Deploy);
 #endif
+
+    // --- Новая логика для подушки безопасности ---
+
+    // Открываем крышку подушки (Servo3 = канал 2) на 5 секунд
+    SRV_Channels::set_output_pwm_chan_timeout(2, 2000, 5000);
+
+    // Запускаем насос подушки (Servo4 = канал 3) через **1 секунду** на 5 минут
+    schedule_delayed_task([]() {
+        SRV_Channels::set_output_pwm_chan_timeout(3, 1600, 5 * 60 * 1000);
+    }, 1000);
 }
 
 /*
