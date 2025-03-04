@@ -31,17 +31,14 @@ void Plane::parachute_release()
     parachute.release();
 
     // --- ДВЕ СТРОКИ ДЛЯ ОДНОВРЕМЕННОГО ЗАПУСКА ---
-    // 1) Открыть крышку (канал 2 = 2000) на 5 секунд (5000 мс):
     SRV_Channels::set_output_pwm_chan_timeout(2, 2000, 5000);
-    // 2) Начать надувание (канал 3 = 1600) на 5 минут (300 000 мс):
     SRV_Channels::set_output_pwm_chan_timeout(3, 1600, 300000);
-}
 
 #if AP_LANDINGGEAR_ENABLED
     // deploy landing gear
     g2.landing_gear.set_position(AP_LandingGear::LandingGear_Deploy);
 #endif
-}
+} // <-- закрываем функцию ровно один раз
 
 /*
   parachute_manual_release - trigger the release of the parachute,
