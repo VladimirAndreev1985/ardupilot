@@ -40,11 +40,10 @@ void Plane::parachute_release()
     // Открываем крышку подушки (Servo3 = канал 2) на 5 секунд
     SRV_Channels::set_output_pwm_chan_timeout(2, 2000, 5000);
 
-    // Запускаем насос подушки (Servo4 = канал 3) через 1 секунду на 5 минут
-    uint32_t now = AP_HAL::millis(); // Получаем текущее время
-    AP_Scheduler::instance().register_delayed_callback([]() {
-        SRV_Channels::set_output_pwm_chan_timeout(3, 1600, 300000); // Включаем насос на 5 минут
-    }, now + 1000); // Выполняем через 1 секунду
+    // Включаем насос подушки (Servo4 = канал 3) через 1 секунду на 5 минут
+    AP::scheduler->schedule_delayed(1000, []() {
+        SRV_Channels::set_output_pwm_chan_timeout(3, 1600, 300000); // 5 минут
+    });
 }
 /*
   parachute_manual_release - trigger the release of the parachute,
