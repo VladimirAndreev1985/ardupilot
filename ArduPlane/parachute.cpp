@@ -16,6 +16,18 @@ void Plane::parachute_check()
 /*
   parachute_release - trigger the release of the parachute
 */
+// Функция для включения насоса
+void activate_cushion_pump()
+{
+    SRV_Channels::set_output_pwm(3, 1600);
+}
+
+// Функция для выключения насоса
+void deactivate_cushion_pump()
+{
+    SRV_Channels::set_output_pwm(3, 988); // 988 — значение выключения из lua-скрипта
+}
+
 void Plane::parachute_release()
 {
     if (parachute.release_in_progress()) {
@@ -40,17 +52,11 @@ void Plane::parachute_release()
     // Открываем крышку подушки (Servo3 = канал 2) на 5 секунд
     SRV_Channels::set_output_pwm_chan_timeout(2, 2000, 5000);
 
-    // Включаем насос подушки (Servo4 = канал 3) на 5 минут (повторно каждые 60 сек)
-    for (int i = 0; i < 5; i++) {
-        AP::scheduler->schedule_delayed(i * 60000, []() {
-            SRV_Channels::set_output_pwm(3, 1600);
-        });
-    }
+    // Включаем насос подушки (Servo4 = канал 3) сразу после открытия крышки
+    activate_cushion_pump();
 
     // Через 5 минут выключаем насос
-    AP::scheduler->schedule_delayed(300000, []() {
-        SRV_Channels::set_output_pwm(3, 988); // 988 — значение выключения из lua-скрипта
-    });
+    AP::scheduler->schedule_delayed(300000, deactivate_cushion_pump);
 }
 /*
   parachute_manual_release - trigger the release of the parachute,
