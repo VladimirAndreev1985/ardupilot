@@ -16,27 +16,15 @@ void Plane::parachute_check()
 /*
   parachute_release - trigger the release of the parachute
 */
-// Функция для включения насоса
-static void activate_cushion_pump()
-{
-    SRV_Channels::set_output_pwm(3, 1600);
-}
-
-// Функция для выключения насоса
-static void deactivate_cushion_pump()
-{
-    SRV_Channels::set_output_pwm(3, 988); // 988 — значение выключения из lua-скрипта
-}
-
 void Plane::parachute_release()
 {
     if (parachute.release_in_progress()) {
         return;
     }
     if (parachute.released()) {
-        gcs().send_text(MAV_SEVERITY_CRITICAL, "Parachute: Released again");
+        gcs().send_text(MAV_SEVERITY_CRITICAL,"Parachute: Released again");
     } else {
-        gcs().send_text(MAV_SEVERITY_CRITICAL, "Parachute: Released");
+        gcs().send_text(MAV_SEVERITY_CRITICAL,"Parachute: Released");
     }
 
     // release parachute
@@ -46,17 +34,6 @@ void Plane::parachute_release()
     // deploy landing gear
     g2.landing_gear.set_position(AP_LandingGear::LandingGear_Deploy);
 #endif
-
-    // --- Новая логика для подушки безопасности ---
-
-    // Открываем крышку подушки (Servo3 = канал 2) на 5 секунд
-    SRV_Channels::set_output_pwm_chan_timeout(2, 2000, 5000);
-
-    // Включаем насос подушки (Servo4 = канал 3) сразу после открытия крышки
-    activate_cushion_pump();
-
-    // Через 5 минут выключаем насос (гарантированно работает)
-    AP::scheduler->schedule_delayed(300000, &deactivate_cushion_pump);
 }
 
 /*
