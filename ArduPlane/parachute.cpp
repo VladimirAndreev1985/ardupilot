@@ -17,13 +17,13 @@ void Plane::parachute_check()
   parachute_release - trigger the release of the parachute
 */
 // Функция для включения насоса
-void activate_cushion_pump()
+static void activate_cushion_pump()
 {
     SRV_Channels::set_output_pwm(3, 1600);
 }
 
 // Функция для выключения насоса
-void deactivate_cushion_pump()
+static void deactivate_cushion_pump()
 {
     SRV_Channels::set_output_pwm(3, 988); // 988 — значение выключения из lua-скрипта
 }
@@ -55,9 +55,10 @@ void Plane::parachute_release()
     // Включаем насос подушки (Servo4 = канал 3) сразу после открытия крышки
     activate_cushion_pump();
 
-    // Через 5 минут выключаем насос
-    AP::scheduler->schedule_delayed(300000, deactivate_cushion_pump);
+    // Через 5 минут выключаем насос (гарантированно работает)
+    AP::scheduler->schedule_delayed(300000, &deactivate_cushion_pump);
 }
+
 /*
   parachute_manual_release - trigger the release of the parachute,
   after performing some checks for pilot error checks if the vehicle
