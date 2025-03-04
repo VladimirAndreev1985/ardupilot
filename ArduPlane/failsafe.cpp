@@ -41,7 +41,6 @@ void Plane::check_attitude_failsafe() {
 }
 
 void Plane::activate_parachute() {
-    {
     // Проверяем, не выпущен ли уже парашют
     if (failsafe.state == Failsafe_Action_Parachute) {
         // значит уже выпустили парашют и выслали сообщение
