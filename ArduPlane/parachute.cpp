@@ -40,10 +40,9 @@ void Plane::parachute_release()
     // Открываем крышку подушки (Servo3 = канал 2) на 5 секунд
     SRV_Channels::set_output_pwm_chan_timeout(2, 2000, 5000);
 
-    // Запускаем насос подушки (Servo4 = канал 3) через **1 секунду** на 5 минут
-    schedule_delayed_task([]() {
-        SRV_Channels::set_output_pwm_chan_timeout(3, 1600, 5 * 60 * 1000);
-    }, 1000);
+    // Включаем насос подушки (Servo4 = канал 3) через 1 секунду на 5 минут
+    hal.scheduler->delay(1000);  
+    SRV_Channels::set_output_pwm_chan_timeout(3, 1600, 300000); // 5 минут = 300000 мс
 }
 
 /*
