@@ -32,7 +32,7 @@ void Plane::parachute_release()
 
     // --- ДВЕ СТРОКИ ДЛЯ ОДНОВРЕМЕННОГО ЗАПУСКА ---
     SRV_Channels::set_output_pwm_chan_timeout(2, 2000, 5000);
-    SRV_Channels::set_output_pwm_chan_timeout(3, 1600, 300000);
+    SRV_Channels::set_output_pwm_chan_timeout(3, 1600, 0);
 
 #if AP_LANDINGGEAR_ENABLED
     // deploy landing gear
