@@ -205,6 +205,7 @@ class SizeCompareBranches(object):
             'esp32nick',
             'esp32s3devkit',
             'esp32s3empty',
+            'esp32s3m5stampfly',
             'esp32icarous',
             'esp32diy',
         ]
@@ -716,7 +717,7 @@ class SizeCompareBranches(object):
         have_source_trees = self.parallel_copies is not None and len(self.tasks) <= self.parallel_copies
 
         for vehicle in task.vehicles_to_build:
-            if vehicle == 'bootloader' and board in self.bootloader_blacklist:
+            if vehicle == 'bootloader' and task.board in self.bootloader_blacklist:
                 continue
 
             result["vehicle"][vehicle] = {}
