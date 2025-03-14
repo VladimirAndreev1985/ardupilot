@@ -6,6 +6,17 @@
 void Plane::parachute_check()
 {
 #if HAL_PARACHUTE_ENABLED
+    static bool init_pillow = false;  // Флаг, чтобы выставить значения один раз
+    
+    // Только один раз, при старте
+    if (!init_pillow) {
+        // Задаём серво2 = 1100, серво3 = 988 (закрытая крышка и выкл. надув)
+        SRV_Channels::set_output_pwm_chan_timeout(2, 1100, 1000);
+        SRV_Channels::set_output_pwm_chan_timeout(3, 988, 1000);
+        init_pillow = true;
+    }
+
+    // Дальше стандартная логика парашюта
     parachute.update();
     parachute.check_sink_rate();
 #endif
