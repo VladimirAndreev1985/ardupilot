@@ -26,7 +26,7 @@ int8_t GPSExternalEstimate::read()
     if ((now - _last_update_ms) < 2000) {
         // Заполняем поля структуры state (она унаследована от GPSDriver):
         state.location = _loc;
-        // фиктивный уровень сигнала
+        // фиктивный уровень сигнала .
         state.status = GPS::GPSStatus::GPS_OK_FIX_3D; // можно GPS_OK_FIX_2D
         state.hdop = 100; // пример (hdop=1.0 => 100, hdop=0.5 => 50, в некоторых ветках)
         // можно ground_speed и ground_course задать, если нужно
