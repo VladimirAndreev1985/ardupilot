@@ -1027,6 +1027,7 @@ MAV_RESULT GCS_MAVLINK_Plane::handle_command_int_packet(const mavlink_command_in
     AP::gps().inject_external_estimate(lat, lon, timestamp);
 
     return MAV_RESULT_ACCEPTED;
+    break;
 }
         case MAV_CMD_DO_AUTOTUNE_ENABLE:
         return handle_MAV_CMD_DO_AUTOTUNE_ENABLE(packet);
