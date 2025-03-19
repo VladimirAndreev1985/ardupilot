@@ -9,8 +9,6 @@ public:
     void set_position(int32_t lat, int32_t lon, float timestamp);
     bool read() override;
 
-    void set_position(int32_t lat, int32_t lon, float alt, uint32_t time_ms);
-
     const char *name() const override { return "ExternalEstimate"; }
 
 private:
