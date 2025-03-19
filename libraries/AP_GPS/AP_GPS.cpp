@@ -638,6 +638,9 @@ AP_GPS_Backend *AP_GPS::_detect_instance(uint8_t instance)
     const auto type = params[instance].type;
 
     switch (GPS_Type(type)) {
+    case GPS_TYPE_EXTERNAL_ESTIMATE:
+        dstate->auto_detected_baud = false; // задан вручную
+        return NEW_NOTHROW GPSExternalEstimate(*this, params[instance], state[instance]);
     // user has to explicitly set the MAV type, do not use AUTO
     // do not try to detect the MAV type, assume it's there
     case GPS_TYPE_MAV:
