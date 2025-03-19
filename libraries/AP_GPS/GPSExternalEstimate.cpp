@@ -27,13 +27,6 @@ bool GPSExternalEstimate::read()
     }
 }
 
-void GPSExternalEstimate::set_position(int32_t lat, int32_t lon, float alt, uint32_t time_ms)
-{
-    _loc.lat = lat;
-    _loc.lng = lon;
-    _loc.alt = (int32_t)(alt * 100.0f);
-    _last_update_ms = AP_HAL::millis();
-}
 void GPSExternalEstimate::set_position(int32_t lat, int32_t lon, float timestamp) {
     state.location.lat = lat;
     state.location.lng = lon;
