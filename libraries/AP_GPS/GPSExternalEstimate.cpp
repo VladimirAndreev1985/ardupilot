@@ -1,8 +1,8 @@
 #include "GPSExternalEstimate.h"
 #include <AP_HAL/AP_HAL.h>
 
-GPSExternalEstimate::GPSExternalEstimate(AP_GPS &gps, AP_GPS::GPS_State &_state) :
-    AP_GPS_Backend(gps, _state),
+GPSExternalEstimate::GPSExternalEstimate(AP_GPS &_gps, AP_GPS::GPS_State &_state) :
+    AP_GPS_Backend(_gps, _state),
     _last_update_ms(0)
 {
     _loc.lat = 0;
