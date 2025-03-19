@@ -42,6 +42,7 @@
 #include "AP_GPS_MSP.h"
 #include "AP_GPS_ExternalAHRS.h"
 #include "GPS_Backend.h"
+#include "GPSExternalEstimate.h"
 #if HAL_SIM_GPS_ENABLED
 #include "AP_GPS_SITL.h"
 #endif
