@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GPS.h"  // <-- базовый класс GPSDriver
+#include "AP_GPS.h"  // <-- базовый класс GPSDriver
 
 class GPSExternalEstimate : public GPSDriver {
 public:
