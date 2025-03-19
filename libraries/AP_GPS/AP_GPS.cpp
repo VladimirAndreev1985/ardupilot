@@ -615,6 +615,18 @@ void AP_GPS::detect_instance(uint8_t instance)
     state[instance].hdop = GPS_UNKNOWN_DOP;
     state[instance].vdop = GPS_UNKNOWN_DOP;
 
+    switch (params[instance].type.get()) {
+        case GPS_TYPE_EXTERNAL_ESTIMATE:
+            drivers[instance] = NEW_NOTHROW GPSExternalEstimate(*this, params[instance], state[instance]);
+            state[instance].status = NO_FIX;
+            timing[instance].last_message_time_ms = now;
+            timing[instance].delta_time_ms = GPS_TIMEOUT_MS;
+            drivers[instance]->broadcast_gps_type();
+            return;
+        default:
+            break;
+    }
+
     AP_GPS_Backend *new_gps = _detect_instance(instance);
     if (new_gps == nullptr) {
         return;
