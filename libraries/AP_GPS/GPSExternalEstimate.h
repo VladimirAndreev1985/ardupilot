@@ -1,7 +1,6 @@
 #pragma once
 
 #include "AP_GPS.h"
-#include "AP_GPS_Backend.h" // <--- добавляем это!
 
 class GPSExternalEstimate : public AP_GPS_Backend {
 public:
