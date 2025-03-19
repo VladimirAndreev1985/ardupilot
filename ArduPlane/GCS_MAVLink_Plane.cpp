@@ -1017,7 +1017,18 @@ MAV_RESULT GCS_MAVLINK_Plane::handle_command_int_packet(const mavlink_command_in
 {
     switch(packet.command) {
 
-    case MAV_CMD_DO_AUTOTUNE_ENABLE:
+    case MAV_CMD_EXTERNAL_POSITION_ESTIMATE: {
+    // получаем широту и долготу
+    int32_t lat = packet.x;
+    int32_t lon = packet.y;
+    float timestamp = packet.param1;
+
+    // Передача координат в GPS драйвер
+    AP::gps().inject_external_estimate(lat, lon, timestamp);
+
+    return MAV_RESULT_ACCEPTED;
+}
+        case MAV_CMD_DO_AUTOTUNE_ENABLE:
         return handle_MAV_CMD_DO_AUTOTUNE_ENABLE(packet);
 
     case MAV_CMD_DO_REPOSITION:
