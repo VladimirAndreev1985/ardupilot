@@ -1,6 +1,6 @@
 #pragma once
 
-#include "AP_GPS.h"
+#include "AP_GPS.h" // <-- оставьте только эту строку и удалите строку с AP_GPS_Backend.h
 
 class GPSExternalEstimate : public AP_GPS_Backend {
 public:
