@@ -2165,6 +2165,13 @@ bool AP_GPS::gps_yaw_deg(uint8_t instance, float &yaw_deg, float &accuracy_deg, 
  * end old parameter metadata
  */
 
+void AP_GPS::inject_external_estimate(int32_t lat, int32_t lon, float timestamp) {
+    // Здесь проверка на тип GPS и вызов нужного драйвера (твой GPSExternalEstimate)
+    if (drivers[0] && strcmp(drivers[0]->name(), "ExternalEstimate") == 0) {
+        ((GPSExternalEstimate*)drivers[0])->set_position(lat, lon, timestamp);
+    }
+}
+
 namespace AP {
 
 AP_GPS &gps()
