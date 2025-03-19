@@ -3,11 +3,11 @@
 #include "AP_GPS.h"
 #include "GPS_Backend.h"
 
-class GPSExternalEstimate : public AP_GPS_Backend {  // <--- именно AP_GPS_Backend
+class GPSExternalEstimate : public AP_GPS_Backend {
 public:
     GPSExternalEstimate(AP_GPS &gps, AP_GPS::GPS_State &_state);
 
-    int8_t read() override;
+    bool read() override; // <--- bool вместо int8_t
     bool configure() override;
 
     void set_position(int32_t lat, int32_t lon, float alt, uint32_t time_ms);
