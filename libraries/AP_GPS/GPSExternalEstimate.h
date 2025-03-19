@@ -3,7 +3,7 @@
 #include "AP_GPS.h"
 #include "GPS_Backend.h"
 
-class GPSExternalEstimate : public GPS_Backend {
+class GPSExternalEstimate : public AP_GPS_Backend {  // <--- именно AP_GPS_Backend
 public:
     GPSExternalEstimate(AP_GPS &gps, AP_GPS::GPS_State &_state);
 
