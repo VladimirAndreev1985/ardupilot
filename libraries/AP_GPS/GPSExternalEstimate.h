@@ -2,7 +2,7 @@
 
 #include "AP_GPS.h"  // <-- базовый класс GPSDriver
 
-class GPSExternalEstimate : public GPSDriver {
+class GPSExternalEstimate : public AP_GPS_Backend {
 public:
     GPSExternalEstimate();
 
