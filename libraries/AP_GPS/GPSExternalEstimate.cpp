@@ -10,12 +10,7 @@ GPSExternalEstimate::GPSExternalEstimate(AP_GPS &gps, AP_GPS::GPS_State &_state)
     _loc.alt = 0;
 }
 
-bool GPSExternalEstimate::configure()
-{
-    return true;
-}
-
-bool GPSExternalEstimate::read()  // <-- bool вместо int8_t
+bool GPSExternalEstimate::read()
 {
     uint32_t now = AP_HAL::millis();
 
@@ -23,10 +18,10 @@ bool GPSExternalEstimate::read()  // <-- bool вместо int8_t
         state.location = _loc;
         state.status = AP_GPS::GPS_OK_FIX_3D;
         state.hdop = 100;
-        return true;  // теперь true вместо 1
+        return true;
     } else {
         state.status = AP_GPS::NO_GPS;
-        return false;  // теперь false вместо 0
+        return false;
     }
 }
 
