@@ -573,6 +573,9 @@ public:
 
     // handle possibly fragmented RTCM injection data
     void handle_gps_rtcm_fragment(uint8_t flags, const uint8_t *data, uint8_t len);
+    
+    // метод для приёма внешних координат через MAVLink
+    void inject_external_estimate(int32_t lat, int32_t lon, float timestamp);
 
     // get configured type by instance
     GPS_Type get_type(uint8_t instance) const {
