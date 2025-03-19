@@ -2,7 +2,7 @@
 #include <AP_HAL/AP_HAL.h>
 
 GPSExternalEstimate::GPSExternalEstimate(AP_GPS &gps, AP_GPS::GPS_State &_state) :
-    GPS_Backend(gps, _state),
+    AP_GPS_Backend(gps, _state),
     _last_update_ms(0)
 {
     _loc.lat = 0;
@@ -15,7 +15,7 @@ bool GPSExternalEstimate::configure()
     return true;
 }
 
-int8_t GPSExternalEstimate::read()
+bool GPSExternalEstimate::read()  // <-- bool вместо int8_t
 {
     uint32_t now = AP_HAL::millis();
 
@@ -23,10 +23,10 @@ int8_t GPSExternalEstimate::read()
         state.location = _loc;
         state.status = AP_GPS::GPS_OK_FIX_3D;
         state.hdop = 100;
-        return 1;
+        return true;  // теперь true вместо 1
     } else {
         state.status = AP_GPS::NO_GPS;
-        return 0;
+        return false;  // теперь false вместо 0
     }
 }
 
