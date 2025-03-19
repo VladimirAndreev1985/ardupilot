@@ -5,7 +5,7 @@
 
 class GPSExternalEstimate : public AP_GPS_Backend {
 public:
-    GPSExternalEstimate(AP_GPS &gps, AP_GPS::GPS_State &_state);
+    GPSExternalEstimate(AP_GPS &_gps, AP_GPS::GPS_State &_state);
 
     bool read() override;
 
