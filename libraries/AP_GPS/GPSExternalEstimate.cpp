@@ -34,3 +34,11 @@ void GPSExternalEstimate::set_position(int32_t lat, int32_t lon, float alt, uint
     _loc.alt = (int32_t)(alt * 100.0f);
     _last_update_ms = AP_HAL::millis();
 }
+void GPSExternalEstimate::set_position(int32_t lat, int32_t lon, float timestamp) {
+    state.location.lat = lat;
+    state.location.lng = lon;
+    state.location.alt = 0; // Если высота неизвестна, устанавливаем 0
+    state.status = AP_GPS::GPS_OK_FIX_3D;
+    state.last_gps_time_ms = AP_HAL::millis();
+    _last_update_ms = state.last_gps_time_ms;
+}
