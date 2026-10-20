@@ -11145,6 +11145,8 @@ return update()
             self.RocketX45StageOutputs,
             self.RocketMode_disabled_rejection,
             self.RocketFailsafeDeferred,
+            self.RocketPreArm,
+            self.RocketGPSFallback,
         ])
         return ret
 
@@ -11161,7 +11163,10 @@ return update()
         self.set_parameter("RKTN_GPS_PROTECT", 1)
         self.set_parameter("RKTN_GPS_LOST_MS", 2000)
         self.set_parameter("RKTN_GPS_FBK", 5)  # ArduPlane mode 5 = FBWA
-        self.set_parameter("RKTN_POST_MODE", 5)  # RTL при исправном GPS
+        # RKTN_POST_MODE — это индекс Rocket::PostMode (0-3), а не номер режима
+        # ArduPlane. CIRCLE (3) отличается от резервного FBWA, поэтому проверка
+        # режима ниже действительно подтверждает выбор резерва по GPS.
+        self.set_parameter("RKTN_POST_MODE", 3)  # CIRCLE при исправном GPS
         self.set_parameter("SERVO9_FUNCTION", 190)
         self.set_parameter("SERVO10_FUNCTION", 191)
         self.set_parameter("SERVO11_FUNCTION", 192)
@@ -11185,7 +11190,9 @@ return update()
         self.change_mode(27)
         self.wait_statustext("RKTN: stage=BOOST", timeout=10)
         self.wait_statustext("RKTN: stage=DONE", timeout=10)
-        self.assert_mode("FBWA")  # При GPS LOST выбран заданный резервный режим
+        # GPS исправен, поэтому выбирается RKTN_POST_MODE, а не резерв по GPS.
+        # Резервный путь проверяется отдельно в RocketGPSFallback.
+        self.assert_mode("CIRCLE")
         # MANUAL maps RC inputs directly to Plane axis functions; verify that
         # all four physical fins respond with the X45 roll sign pattern.
         self.change_mode("MANUAL")
@@ -11196,7 +11203,7 @@ return update()
         for channel in (10, 11):
             self.wait_servo_channel_in_range(channel, 1000, 1480, timeout=5)
         self.set_rc_default()
-        self.progress("ROCKET: пройдены WAIT_LAUNCH -> BOOST -> COAST -> DONE -> FBWA")
+        self.progress("ROCKET: пройдены WAIT_LAUNCH -> BOOST -> COAST -> DONE -> CIRCLE")
         self.disarm_vehicle(force=True)
 
     def RocketX45Auto(self):
@@ -11348,6 +11355,95 @@ return update()
         self.wait_mode("RTL", timeout=10)
 
         self.set_parameter("SIM_RC_FAIL", 0)
+        self.disarm_vehicle(force=True)
+
+    def RocketPreArm(self):
+        """Verify rocket config pre-arm checks: fin outputs and handover modes."""
+        # Clean baseline first, so later failures can only come from RKTN.
+        self.wait_ready_to_arm()
+
+        # X45 is an airframe property, so the fin check must bite with
+        # RKTN_ENABLE=0 too: the mixer runs in every fixed-wing mode.
+        self.set_parameters({
+            "RKTN_ENABLE": 0,
+            "RKTN_TAIL_MODE": 1,
+        })
+        for channel in range(9, 13):
+            self.set_parameter("SERVO%d_FUNCTION" % channel, 0)
+        self.assert_prearm_failure("RKTN: fin LU output not assigned")
+
+        # Assigning every fin clears it.
+        for channel, function in zip(range(9, 13), range(190, 194)):
+            self.set_parameter("SERVO%d_FUNCTION" % channel, function)
+        self.wait_ready_to_arm()
+
+        # A partial assignment names the missing fin.
+        self.set_parameter("SERVO11_FUNCTION", 0)
+        self.assert_prearm_failure("RKTN: fin LD output not assigned")
+        self.set_parameter("SERVO11_FUNCTION", 192)
+        self.wait_ready_to_arm()
+
+        # RKTN_POST_MODE is a Rocket::PostMode index (0-3), not a mode number.
+        self.set_parameter("RKTN_ENABLE", 1)
+        self.set_parameter("RKTN_POST_MODE", 5)
+        self.assert_prearm_failure("RKTN_POST_MODE=5 out of range 0-3")
+        self.set_parameter("RKTN_POST_MODE", 1)
+        self.wait_ready_to_arm()
+
+        # RKTN_GPS_FBK is an ArduPlane mode number, and must not be ROCKET
+        # itself, which would restart the sequence.
+        self.set_parameters({
+            "RKTN_GPS_PROTECT": 1,
+            "RKTN_GPS_FBK": 27,
+        })
+        self.assert_prearm_failure("RKTN_GPS_FBK=27 is ROCKET")
+        self.set_parameter("RKTN_GPS_FBK", 28)
+        self.assert_prearm_failure("RKTN_GPS_FBK=28 not a valid mode")
+        self.set_parameter("RKTN_GPS_FBK", 5)
+        self.wait_ready_to_arm()
+
+        # The handover checks are skipped when the sequence cannot run.
+        self.set_parameters({
+            "RKTN_ENABLE": 0,
+            "RKTN_POST_MODE": 5,
+        })
+        self.wait_ready_to_arm()
+        self.set_parameter("RKTN_POST_MODE", 1)
+
+    def RocketGPSFallback(self):
+        """Verify RKTN_GPS_FBK is used at handover when the GPS is lost."""
+        self.set_parameters({
+            "RKTN_ENABLE": 1,
+            "RKTN_TAIL_MODE": 1,
+            "RKTN_DBG": 1,
+            "RKTN_BST_HARD": 1000,
+            "RKTN_CST_HARD": 1000,
+            "RKTN_GPS_PROTECT": 1,
+            "RKTN_GPS_LOST_MS": 2000,
+            "RKTN_GPS_FBK": 2,     # STABILIZE, distinct from the post mode
+            "RKTN_POST_MODE": 3,   # CIRCLE if the GPS stays healthy
+            "RKTN_TST_STAGE": 1,   # hold BOOST while the GPS is dropped
+        })
+        for channel, function in zip(range(9, 13), range(190, 194)):
+            self.set_parameter("SERVO%d_FUNCTION" % channel, function)
+
+        self.wait_ready_to_arm()
+        self.arm_vehicle()
+        self.change_mode(27)
+        self.assert_mode(27)
+
+        # Drop the GPS and wait past RKTN_GPS_LOST_MS while BOOST is held, so
+        # the loss is established before the handover decision is taken.
+        self.context_collect("STATUSTEXT")
+        self.set_parameter("SIM_GPS1_ENABLE", 0)
+        self.delay_sim_time(4, reason="GPS loss established during BOOST")
+        self.assert_mode(27)
+
+        self.set_parameter("RKTN_TST_STAGE", -1)
+        self.wait_statustext("GPS LOST, fallback mode=2", timeout=20, check_context=True)
+        self.wait_mode("STABILIZE", timeout=10)
+
+        self.set_parameter("SIM_GPS1_ENABLE", 1)
         self.disarm_vehicle(force=True)
 
     def disabled_tests(self):
