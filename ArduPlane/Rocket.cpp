@@ -515,18 +515,19 @@ void Rocket::compute_outputs(float &fin_lu, float &fin_ru, float &fin_ld, float 
     case Stage::BOOST: {
         const float g  = boost_damp.get();
         const float gm = boost_gmax.get();
-        const float damp_roll  = damp( gyro.x, g, gm) + boost_thr.get();
-        const float damp_pitch = damp( gyro.y, g, gm) + boost_thr.get();
-        const float damp_yaw   = damp(-gyro.z, g, gm) + boost_thr.get();
+        const float damp_roll  = damp(-degrees(gyro.x), g, gm) + boost_thr.get();
+        const float damp_pitch = damp(-degrees(gyro.y), g, gm) + boost_thr.get();
+        const float damp_yaw   = damp(-degrees(gyro.z), g, gm) + boost_thr.get();
         if (tail_mode() == TailMode::X45) {
             // Mix independent rate corrections before limiting each fin.
             // Averaging the axes into one command loses attitude control.
             mix_x45(damp_roll, damp_pitch, damp_yaw,
                     fin_lu, fin_ru, fin_ld, fin_rd);
         } else {
-            // Keep the legacy CROSS BOOST command unchanged.
-            const float average = (damp_roll + damp_pitch + damp_yaw) / 3.0f;
-            fin_lu = fin_ru = fin_ld = fin_rd = average;
+            const float pitch = constrain_float(damp_pitch, -1.0f, 1.0f);
+            const float yaw   = constrain_float(damp_yaw,   -1.0f, 1.0f);
+            fin_lu = fin_ru = pitch;
+            fin_ld = fin_rd = yaw;
         }
         const float lower = constrain_float(boost_min.get(), -1.0f, 0.0f);
         const float upper = constrain_float(boost_max.get(), 0.0f, 1.0f);
@@ -540,9 +541,9 @@ void Rocket::compute_outputs(float &fin_lu, float &fin_ru, float &fin_ld, float 
     case Stage::COAST: {
         const float g  = coast_damp.get();
         const float gm = coast_gmax.get();
-        const float damp_roll  = damp( gyro.x, g, gm) + coast_thr.get();
-        const float damp_pitch = damp( gyro.y, g, gm) + coast_thr.get();
-        const float damp_yaw   = damp(-gyro.z, g, gm) + coast_thr.get();
+        const float damp_roll  = damp(-degrees(gyro.x), g, gm) + coast_thr.get();
+        const float damp_pitch = damp(-degrees(gyro.y), g, gm) + coast_thr.get();
+        const float damp_yaw   = damp(-degrees(gyro.z), g, gm) + coast_thr.get();
         if (tail_mode() == TailMode::X45) {
             mix_x45(damp_roll, damp_pitch, damp_yaw,
                     fin_lu, fin_ru, fin_ld, fin_rd);
@@ -572,13 +573,13 @@ void Rocket::mix_x45(float aileron_in, float elevator_in, float rudder_in,
     // Матрица смешения для схемы X45:
     //   LU = +крен - тангаж - рыскание
     //   RU = -крен - тангаж + рыскание
-    //   LD = -крен + тангаж + рыскание
-    //   RD = +крен + тангаж - рыскание
+    //   LD = -крен + тангаж - рыскание
+    //   RD = +крен + тангаж + рыскание
     const float g = xwing_gain.get();
     fin_lu = ( aileron_in - elevator_in - rudder_in) * g;
     fin_ru = (-aileron_in - elevator_in + rudder_in) * g;
-    fin_ld = (-aileron_in + elevator_in + rudder_in) * g;
-    fin_rd = ( aileron_in + elevator_in - rudder_in) * g;
+    fin_ld = (-aileron_in + elevator_in - rudder_in) * g;
+    fin_rd = ( aileron_in + elevator_in + rudder_in) * g;
     fin_lu = constrain_float(fin_lu, -1.0f, 1.0f);
     fin_ru = constrain_float(fin_ru, -1.0f, 1.0f);
     fin_ld = constrain_float(fin_ld, -1.0f, 1.0f);
