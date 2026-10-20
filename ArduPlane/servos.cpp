@@ -1003,6 +1003,40 @@ void Plane::landing_neutral_control_surface_servos(void)
 }
 
 /*
+  X-wing mixer for the rocket X-45 tail geometry.
+  Combines aileron / elevator / rudder demands into 4 fin outputs,
+  then pushes them into the k_rocket_fin_* SRV_Channel functions.
+
+  Runs once per servo update after the standard elevon/vtail mixers.
+  Each normalized fin demand is converted to an SRV angle (-4500..4500).
+*/
+void Plane::rocket_x_mixer()
+{
+    // X45 describes the airframe, independently of whether ROCKET is enabled.
+    if (mode_rocket.rocket().tail_mode() != Rocket::TailMode::X45) {
+        return;
+    }
+
+    float lu, ru, ld, rd;
+    if (control_mode == &mode_rocket) {
+        mode_rocket.rocket().compute_outputs(lu, ru, ld, rd);
+    } else {
+        // Plane outputs are centidegrees (-4500..4500); X45 inputs are
+        // normalized (-1..1). mix_x45 applies gain and saturates each fin.
+        constexpr float to_normalized = 1.0f / 4500.0f;
+        const float roll = SRV_Channels::get_output_scaled(SRV_Channel::k_aileron) * to_normalized;
+        const float pitch = SRV_Channels::get_output_scaled(SRV_Channel::k_elevator) * to_normalized;
+        const float yaw = SRV_Channels::get_output_scaled(SRV_Channel::k_rudder) * to_normalized;
+        mode_rocket.rocket().mix_x45(roll, pitch, yaw, lu, ru, ld, rd);
+    }
+    // Fin SRV functions are angle outputs (-4500..4500), not -1..1.
+    SRV_Channels::set_output_scaled(SRV_Channel::k_rocket_fin_lu, lu * 4500.0f);
+    SRV_Channels::set_output_scaled(SRV_Channel::k_rocket_fin_ru, ru * 4500.0f);
+    SRV_Channels::set_output_scaled(SRV_Channel::k_rocket_fin_ld, ld * 4500.0f);
+    SRV_Channels::set_output_scaled(SRV_Channel::k_rocket_fin_rd, rd * 4500.0f);
+}
+
+/*
   sets rudder/vtail , and elevon to indicator positions that we are in a rudder arming waiting for neutral stick state
 */
 void Plane::indicate_waiting_for_rud_neutral_to_takeoff(void)
@@ -1035,6 +1069,10 @@ void Plane::servos_output(void)
     // run vtail and elevon mixers
     channel_function_mixer(SRV_Channel::k_aileron, SRV_Channel::k_elevator, SRV_Channel::k_elevon_left, SRV_Channel::k_elevon_right);
     channel_function_mixer(SRV_Channel::k_rudder,  SRV_Channel::k_elevator, SRV_Channel::k_vtail_right, SRV_Channel::k_vtail_left);
+
+    // X45 uses standard Plane axis demands in every fixed-wing mode, regardless
+    // of RKTN_ENABLE. ROCKET retains its stage-specific stabilization outputs.
+    rocket_x_mixer();
 
 #if HAL_QUADPLANE_ENABLED
     // cope with tailsitters and bicopters

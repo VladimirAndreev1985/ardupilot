@@ -72,6 +72,10 @@ uint8_t GCS_MAVLINK_Plane::base_mode() const
         // APM does in any mode, as that is defined as "system finds its own goal
         // positions", which APM does not currently do
         break;
+    case Mode::Number::ROCKET:
+        _base_mode = MAV_MODE_FLAG_STABILIZE_ENABLED;
+        break;
+
     case Mode::Number::INITIALISING:
         break;
     }
@@ -1309,6 +1313,7 @@ uint8_t GCS_MAVLINK_Plane::send_available_mode(uint8_t index) const
 #if MODE_AUTOLAND_ENABLED
         &plane.mode_autoland,
 #endif
+        &plane.mode_rocket,
     };
 
     const uint8_t fw_mode_count = ARRAY_SIZE(fw_modes);

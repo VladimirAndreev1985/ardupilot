@@ -12,6 +12,7 @@
 #include "config.h"
 #include "pullup.h"
 #include "systemid.h"
+#include "Rocket.h"
 
 #ifndef AP_QUICKTUNE_ENABLED
 #define AP_QUICKTUNE_ENABLED HAL_QUADPLANE_ENABLED
@@ -70,6 +71,7 @@ public:
 #if MODE_AUTOLAND_ENABLED
         AUTOLAND      = 26,
 #endif
+        ROCKET        = 27,
 
     // Mode number 30 reserved for "offboard" for external/lua control.
     };
@@ -1087,3 +1089,25 @@ protected:
 };
 
 #endif
+
+class ModeRocket : public Mode
+{
+public:
+    Number mode_number() const override { return Number::ROCKET; }
+    const char *name() const override { return "Rocket"; }
+    const char *name4() const override { return "RKET"; }
+
+    ModeRocket();
+
+    void update() override;
+    Rocket &rocket() { return _rocket; }
+
+    static const struct AP_Param::GroupInfo var_info[];
+    bool _enter() override;
+    void _exit() override;
+
+private:
+    Rocket _rocket;
+    Mode::Number post_target;
+    bool handover_started;
+};

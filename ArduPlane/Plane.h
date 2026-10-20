@@ -178,6 +178,7 @@ public:
     friend class ModeQAutotune;
     friend class ModeTakeoff;
     friend class ModeThermal;
+    friend class ModeRocket;
     friend class ModeLoiterAltQLand;
 #if MODE_AUTOLAND_ENABLED
     friend class ModeAutoLand;
@@ -340,6 +341,11 @@ private:
 #if HAL_SOARING_ENABLED
     ModeThermal mode_thermal;
 #endif
+
+    // Rocket flight mode (RD1-300 / X-wing). Self-contained: owns its
+    // own parameter group, its own state machine, and a custom mixer
+    // (Plane::rocket_x_mixer) that runs from Plane::servos_output().
+    ModeRocket mode_rocket;
 
 #if AP_QUICKTUNE_ENABLED
     AP_Quicktune quicktune;
@@ -1204,6 +1210,8 @@ private:
     void channel_function_mixer(SRV_Channel::Function func1_in, SRV_Channel::Function func2_in,
                                 SRV_Channel::Function func1_out, SRV_Channel::Function func2_out) const;
     void flaperon_update();
+    // X-45 tail fin mixer (active for RKTN_TAIL_MODE=1 regardless of RKTN_ENABLE)
+    void rocket_x_mixer();
     void indicate_waiting_for_rud_neutral_to_takeoff(void);
 
     // is_flying.cpp

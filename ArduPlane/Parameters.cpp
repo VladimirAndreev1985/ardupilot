@@ -994,6 +994,10 @@ const AP_Param::Info Plane::var_info[] = {
     GOBJECT(custom_control, "CP", AP_CustomControl),
 #endif // AP_PLANE_CUSTOMCONTROL_ENABLED
 
+    // @Group: RKTN_
+    // @Path: mode_rocket.cpp,Rocket.cpp
+    GOBJECT(mode_rocket, "RKTN_", ModeRocket),
+
     AP_VAREND
 };
 
