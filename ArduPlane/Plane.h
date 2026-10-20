@@ -978,6 +978,7 @@ private:
     void Log_Write_RFNS();
 #endif
     void Log_Write_Status();
+    void Log_Write_Rocket();
     void Log_Write_RC(void);
     void Log_Write_Vehicle_Startup_Messages();
     void Log_Write_AETR();

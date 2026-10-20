@@ -79,6 +79,7 @@ void ModeRocket::update()
     if (!have_climb) {
         climb_rate = NAN;
     }
+    rocket_inst.log_sensors(accel.x, climb_rate);
 
     if (rocket_inst.sitl_stage_held()) {
         return;

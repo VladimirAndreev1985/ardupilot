@@ -11147,6 +11147,7 @@ return update()
             self.RocketFailsafeDeferred,
             self.RocketPreArm,
             self.RocketGPSFallback,
+            self.RocketLogging,
         ])
         return ret
 
@@ -11303,6 +11304,69 @@ return update()
         self.set_parameter("RKTN_TST_STAGE", -1)
         self.change_mode("MANUAL")
         self.disarm_vehicle(force=True)
+
+    def RocketLogging(self):
+        """Проверяет содержимое сообщения RKTN в бортовом журнале."""
+        self.set_parameters({
+            "RKTN_ENABLE": 1,
+            "RKTN_TAIL_MODE": 1,
+            "RKTN_GPS_PROTECT": 0,
+            "RKTN_TST_STAGE": -1,
+            "RKTN_TST_GX": 0.0,
+            "RKTN_TST_GY": 0,
+            "RKTN_TST_GZ": 0,
+            "RKTN_BOOST_DAMP": 1,
+            "RKTN_BOOST_GMAX": 60,
+            "RKTN_BOOST_MIN": -1,
+            "RKTN_BOOST_MAX": 1,
+            "RKTN_BOOST_THR": 0,
+            "RKTN_XWING_GAIN": 1,
+        })
+        for channel, function in zip(range(9, 13), range(190, 194)):
+            self.set_parameter("SERVO%d_FUNCTION" % channel, function)
+
+        self.wait_ready_to_arm()
+        self.arm_vehicle()
+        self.change_mode(27)
+        # Удерживаем BOOST с известной угловой скоростью по X: смешение X45
+        # даёт знаки рулей (-, +, +, -), как в RocketX45StageOutputs.
+        self.set_parameter("RKTN_TST_STAGE", 1)
+        # RKTN_TST_GX задаётся в рад/с, а в журнал пишутся град/с.
+        self.set_parameter("RKTN_TST_GX", 0.5)
+        self.delay_sim_time(2, reason="запись RKTN на этапе BOOST")
+        self.set_parameter("RKTN_TST_STAGE", -1)
+        self.change_mode("MANUAL")
+        self.disarm_vehicle(force=True)
+
+        dfreader = self.dfreader_for_current_onboard_log()
+        boost = []
+        while True:
+            m = dfreader.recv_match(type="RKTN")
+            if m is None:
+                break
+            if m.Stage == 1:
+                boost.append(m)
+        if len(boost) < 10:
+            raise NotAchievedException("слишком мало сообщений RKTN на BOOST: %u" % len(boost))
+
+        sample = boost[-1]
+        # Гироскоп в удержанном этапе берётся из RKTN_TST_GX (0,5 рад/с).
+        expected_gyro = math.degrees(0.5)
+        if abs(sample.GyrX - expected_gyro) > 1:
+            raise NotAchievedException("RKTN.GyrX: ожидалось %.2f, получено %f" %
+                                       (expected_gyro, sample.GyrX))
+        # Знаки рулей по крену для схемы X45.
+        for name, sign in (("LU", -1), ("RU", 1), ("LD", 1), ("RD", -1)):
+            value = getattr(sample, name)
+            if sign * value <= 0:
+                raise NotAchievedException("RKTN.%s: ожидался знак %d, получено %f" %
+                                           (name, sign, value))
+            if abs(value) > 1:
+                raise NotAchievedException("RKTN.%s вне диапазона -1..1: %f" % (name, value))
+        # Контроль GPS отключён, поэтому состояние остаётся OK (0).
+        if sample.GHlt != 0:
+            raise NotAchievedException("RKTN.GHlt: ожидалось 0, получено %u" % sample.GHlt)
+        self.progress("RKTN: проверено %u сообщений на этапе BOOST" % len(boost))
 
     def RocketMode_disabled_rejection(self):
         """Проверяет запрет входа в ROCKET при RKTN_ENABLE = 0."""

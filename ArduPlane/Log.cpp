@@ -689,4 +689,35 @@ void Plane::Log_Write_Blackbox(void)
 }
 #endif // AP_PLANE_BLACKBOX_LOGGING
 
+// @LoggerMessage: RKTN
+// @Description: Состояние режима ROCKET: этап последовательности, контроль GPS, входные данные и команды рулям
+// @Field: TimeUS: Time since system startup
+// @Field: Stage: Этап последовательности (0=WAIT_LAUNCH, 1=BOOST, 2=COAST, 3=DONE)
+// @Field: GHlt: Состояние GPS (0=OK, 1=DEGRADED, 2=SPOOFED, 3=LOST)
+// @Field: AccX: Осевое ускорение по оси X корпуса (ось тяги)
+// @Field: CRt: Вертикальная скорость
+// @Field: GyrX: Угловая скорость по X корпуса
+// @Field: GyrY: Угловая скорость по Y корпуса
+// @Field: GyrZ: Угловая скорость по Z корпуса
+// @Field: LU: Команда рулю «левый верхний»
+// @Field: RU: Команда рулю «правый верхний»
+// @Field: LD: Команда рулю «левый нижний»
+// @Field: RD: Команда рулю «правый нижний»
+void Plane::Log_Write_Rocket()
+{
+    const Rocket &rkt = mode_rocket.rocket();
+    const Rocket::LogState &st = rkt.log_state();
+    AP::logger().WriteStreaming("RKTN",
+                                "TimeUS,Stage,GHlt,AccX,CRt,GyrX,GyrY,GyrZ,LU,RU,LD,RD",
+                                "s--onkkk----",
+                                "F-----------",
+                                "QBBfffffffff",
+                                AP_HAL::micros64(),
+                                (uint8_t)rkt.get_stage(),
+                                (uint8_t)rkt.last_health(),
+                                st.accel_x, st.climb_rate,
+                                st.gyro_x, st.gyro_y, st.gyro_z,
+                                st.fin_lu, st.fin_ru, st.fin_ld, st.fin_rd);
+}
+
 #endif // HAL_LOGGING_ENABLED

@@ -274,6 +274,7 @@ Rocket::Rocket()
     launch_ms = 0;
     burnout_ms = 0;
     launch_detected = false;
+    logged = {};
 
     // Текущее состояние контроля GPS
     last_gps_health = GPSHealth::OK;
@@ -565,6 +566,17 @@ void Rocket::compute_outputs(float &fin_lu, float &fin_ru, float &fin_ld, float 
     case Stage::DONE:
         break;
     }
+
+    // Снимок для сообщения RKTN. Пишутся те же значения гироскопа, что
+    // использованы при расчёте (в SITL при удержании этапа это подменённые
+    // параметрами значения), и итоговые команды рулям после ограничений.
+    logged.gyro_x = degrees(gyro.x);
+    logged.gyro_y = degrees(gyro.y);
+    logged.gyro_z = degrees(gyro.z);
+    logged.fin_lu = fin_lu;
+    logged.fin_ru = fin_ru;
+    logged.fin_ld = fin_ld;
+    logged.fin_rd = fin_rd;
 }
 
 void Rocket::mix_x45(float aileron_in, float elevator_in, float rudder_in,

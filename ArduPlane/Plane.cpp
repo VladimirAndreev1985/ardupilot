@@ -305,6 +305,12 @@ void Plane::update_logging10(void)
  */
 void Plane::update_logging25(void)
 {
+    // Сообщение RKTN пишется только в режиме ROCKET: вне него состояние
+    // последовательности не меняется и запись не несёт информации.
+    if (control_mode == &mode_rocket) {
+        Log_Write_Rocket();
+    }
+
     const bool attitude_fast = should_log(MASK_LOG_ATTITUDE_FAST);
     const bool attitude_full_rate = should_log(MASK_LOG_ATTITUDE_FULLRATE);
 

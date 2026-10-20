@@ -85,6 +85,7 @@ public:
     bool      gps_protection_enabled() const { return gps_protect.get() != 0; }
     // Запускает льготный период отсутствия fix при входе в ROCKET.
     void      reset_gps_monitor();
+
     bool      gps_lost_long_enough() const {
         if (gps_last_fix_ms != 0) {
             return ms_since_last_fix() >= (uint32_t)gps_lost_ms.get();
@@ -130,6 +131,31 @@ public:
     // Открытая таблица параметров и метод выдачи команд сервоприводам Plane.
     static const struct AP_Param::GroupInfo var_info[];
     void compute_outputs(float &fin_lu, float &fin_ru, float &fin_ld, float &fin_rd);
+
+    // Снимок входов и выходов последнего расчёта стабилизации, для записи в
+    // лог. Заполняется в compute_outputs() на каждом шаге управления, а
+    // читается при записи лога на 25 Гц, поэтому расчёт не дублируется.
+    struct LogState {
+        float accel_x;      // осевое ускорение (ось X корпуса), м/с^2
+        float climb_rate;   // вертикальная скорость, м/с
+        float gyro_x;       // угловые скорости, град/с
+        float gyro_y;
+        float gyro_z;
+        float fin_lu;       // команды рулям, от -1 до +1
+        float fin_ru;
+        float fin_ld;
+        float fin_rd;
+    };
+    const LogState &log_state() const { return logged; }
+
+    // Сохраняет входные данные датчиков для сообщения RKTN. Вызывается из
+    // ModeRocket::update(), где они уже вычислены; compute_outputs() к ним
+    // доступа не имеет. climb_rate может быть NAN при отсутствии оценки.
+    void log_sensors(float accel_x, float climb_rate) {
+        logged.accel_x = accel_x;
+        logged.climb_rate = climb_rate;
+    }
+    GPSHealth last_health() const { return last_gps_health; }
 
 private:
     // --- параметры (RKTN_*) ---
@@ -190,5 +216,7 @@ private:
 
     // Переводит аппарат на новый этап и фиксирует время перехода
     void enter_stage(Stage s);
+
+    LogState  logged;
 
 };
