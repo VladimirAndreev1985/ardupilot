@@ -129,10 +129,72 @@ bool AP_Arming_Plane::pre_arm_checks(bool display_failure)
         ret = false;
     }
 
+    ret &= rocket_checks(display_failure);
+
     char failure_msg[50] {};
     if (!plane.control_mode->pre_arm_checks(ARRAY_SIZE(failure_msg), failure_msg)) {
         check_failed(display_failure, "%s %s", plane.control_mode->name(), failure_msg);
         return false;
+    }
+
+    return ret;
+}
+
+/*
+  Rocket configuration checks.
+
+  Run for every mode, not just ROCKET: RKTN_TAIL_MODE describes the airframe,
+  so an X45 tail is mixed in every fixed-wing mode. A missing fin output means
+  no control at all, which the standard checks cannot see.
+*/
+bool AP_Arming_Plane::rocket_checks(bool display_failure)
+{
+    Rocket &rocket = plane.mode_rocket.rocket();
+    bool ret = true;
+
+    if (rocket.tail_mode() == Rocket::TailMode::X45) {
+        const SRV_Channel::Function fins[4] {
+            SRV_Channel::k_rocket_fin_lu,
+            SRV_Channel::k_rocket_fin_ru,
+            SRV_Channel::k_rocket_fin_ld,
+            SRV_Channel::k_rocket_fin_rd,
+        };
+        const char *names[4] { "LU", "RU", "LD", "RD" };
+        for (uint8_t i = 0; i < 4; i++) {
+            if (!SRV_Channels::function_assigned(fins[i])) {
+                check_failed(display_failure, "RKTN: fin %s output not assigned (%u)",
+                             names[i], (unsigned)fins[i]);
+                ret = false;
+            }
+        }
+    }
+
+    if (!rocket.enabled()) {
+        // The remaining checks only affect the ROCKET sequence itself.
+        return ret;
+    }
+
+    // RKTN_POST_MODE is a Rocket::PostMode index, not an ArduPlane mode number.
+    // Out of range silently became FBWA, hiding a misconfigured handover.
+    const int8_t post_mode = rocket.post_mode_raw();
+    if (post_mode < 0 || post_mode > (int8_t)Rocket::PostMode::CIRCLE) {
+        check_failed(display_failure, "RKTN_POST_MODE=%d out of range 0-%u",
+                     (int)post_mode, (unsigned)Rocket::PostMode::CIRCLE);
+        ret = false;
+    }
+
+    if (rocket.gps_protection_enabled()) {
+        // RKTN_GPS_FBK is an ArduPlane mode number. An unknown mode leaves the
+        // vehicle stuck in ROCKET with the fins centred, and ROCKET itself
+        // would restart the sequence.
+        const uint8_t fbk = rocket.gps_fallback_mode();
+        if (fbk == (uint8_t)Mode::Number::ROCKET) {
+            check_failed(display_failure, "RKTN_GPS_FBK=%u is ROCKET", (unsigned)fbk);
+            ret = false;
+        } else if (plane.mode_from_mode_num((Mode::Number)fbk) == nullptr) {
+            check_failed(display_failure, "RKTN_GPS_FBK=%u not a valid mode", (unsigned)fbk);
+            ret = false;
+        }
     }
 
     return ret;

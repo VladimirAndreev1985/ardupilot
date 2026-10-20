@@ -41,6 +41,10 @@ protected:
     bool terrain_database_required() const override;
 
     bool quadplane_checks(bool display_failure);
+
+    // Rocket fin assignment and handover mode checks. Not mode specific:
+    // an X45 tail is mixed in every fixed-wing mode.
+    bool rocket_checks(bool display_failure);
 #if AP_MISSION_ENABLED
     bool mission_checks(bool report) override;
 #endif  // AP_MISSION_ENABLED
