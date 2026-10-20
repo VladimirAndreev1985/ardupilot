@@ -9772,6 +9772,7 @@ return update()
             16: "Initialising",
             24: "Thermal",
             26: "Autoland",
+            27: "Rocket",
         }
         initialising = self.get_mode_from_mode_mapping("INITIALISING")
         modes = self.assert_available_modes(expected_modes, not_user_selectable=[initialising])
@@ -11139,8 +11140,168 @@ return update()
             self.PPPPeriph,
             self.steplessAHRSSwitch,
             self.DO_REPOSITION_mode_change_refused,
+            self.RocketMode,
+            self.RocketX45Auto,
+            self.RocketX45StageOutputs,
         ])
         return ret
+
+    def RocketMode(self):
+        """Проверяет обнаружение старта, все этапы ROCKET и передачу управления в следующий режим."""
+        self.set_parameter("RKTN_ENABLE", 1)
+        self.set_parameter("RKTN_TAIL_MODE", 1)
+        self.set_parameter("RKTN_DBG", 1)
+        self.set_parameter("RKTN_LCH_ACC", 15)
+        self.set_parameter("RKTN_LCH_CLIMB", 30)
+        self.set_parameter("RKTN_BOOST_TIME", 0.5)
+        self.set_parameter("RKTN_BST_HARD", 1000)
+        self.set_parameter("RKTN_CST_HARD", 5000)
+        self.set_parameter("RKTN_GPS_PROTECT", 1)
+        self.set_parameter("RKTN_GPS_LOST_MS", 2000)
+        self.set_parameter("RKTN_GPS_FBK", 5)  # ArduPlane mode 5 = FBWA
+        self.set_parameter("RKTN_POST_MODE", 5)  # RTL при исправном GPS
+        self.set_parameter("SERVO9_FUNCTION", 190)
+        self.set_parameter("SERVO10_FUNCTION", 191)
+        self.set_parameter("SERVO11_FUNCTION", 192)
+        self.set_parameter("SERVO12_FUNCTION", 193)
+
+        self.wait_ready_to_arm()
+        self.arm_vehicle()
+        self.change_mode(27)
+        self.assert_mode(27)
+        self.delay_sim_time(1, reason="проверка ожидания старта в WAIT_LAUNCH")
+        self.assert_mode(27)
+        # Проверяем, что до истечения начального льготного периода GPS считается пригодным.
+        self.delay_sim_time(1, reason="льготный период до первого GPS fix")
+        self.assert_mode(27)
+
+        # Модель самолёта не воспроизводит ракетное ускорение тяги на месте.
+        # Используем штатное обнаружение старта по вертикальной скорости с
+        # пониженным порогом; переходы выгорания и DONE проверяем таймерами.
+        self.set_parameter("RKTN_LCH_CLIMB", 2)
+        self.takeoff(alt=20, mode="FBWA", timeout=60)
+        self.change_mode(27)
+        self.wait_statustext("RKTN: stage=BOOST", timeout=10)
+        self.wait_statustext("RKTN: stage=DONE", timeout=10)
+        self.assert_mode("FBWA")  # При GPS LOST выбран заданный резервный режим
+        # MANUAL maps RC inputs directly to Plane axis functions; verify that
+        # all four physical fins respond with the X45 roll sign pattern.
+        self.change_mode("MANUAL")
+        self.set_rc(1, 1900)
+        self.delay_sim_time(0.5, reason="проверка X45 в MANUAL")
+        for channel in (9, 12):
+            self.wait_servo_channel_in_range(channel, 1520, 2000, timeout=5)
+        for channel in (10, 11):
+            self.wait_servo_channel_in_range(channel, 1000, 1480, timeout=5)
+        self.set_rc_default()
+        self.progress("ROCKET: пройдены WAIT_LAUNCH -> BOOST -> COAST -> DONE -> FBWA")
+        self.disarm_vehicle(force=True)
+
+    def RocketX45Auto(self):
+        """Check autopilot-generated AUTO attitude demands reach all four X45 fins."""
+        self.set_parameter("RKTN_TAIL_MODE", 1)
+        for channel, function in zip(range(9, 13), range(190, 194)):
+            self.set_parameter("SERVO%d_FUNCTION" % channel, function)
+        self.takeoff(alt=40, mode="FBWA", timeout=60)
+        self.set_rc_default()
+        self.load_mission_from_filepath(
+            os.path.join(testdir, "ArduPlane_Tests/Landing-Drift/ap-circuit.txt"))
+        self.set_current_waypoint(4, check_afterwards=False)
+        self.change_mode("AUTO")
+        self.assert_mode("AUTO")
+        # A distant waypoint forces autonomous roll/pitch demands, with
+        # neutral pilot sticks. Require real deflection on every fin.
+        moved = set()
+        start = self.get_sim_time()
+        while self.get_sim_time_cached() - start < 12:
+            m = self.mav.recv_match(type="SERVO_OUTPUT_RAW", blocking=True, timeout=1)
+            if m is None:
+                continue
+            for channel in range(9, 13):
+                pwm = getattr(m, "servo%d_raw" % channel)
+                if abs(pwm - 1500) > 30:
+                    moved.add(channel)
+            if len(moved) == 4:
+                break
+        if len(moved) != 4:
+            raise NotAchievedException("AUTO X45 fins did not all move: %s" % sorted(moved))
+        self.disarm_vehicle(force=True)
+
+    def RocketX45StageOutputs(self):
+        """Verify SITL-only held stages: four fin limits and gyro axis signs."""
+        self.set_parameter("RKTN_ENABLE", 1)
+        self.set_parameter("RKTN_TAIL_MODE", 1)
+        self.set_parameter("RKTN_GPS_PROTECT", 0)
+        self.set_parameter("RKTN_TST_STAGE", 0)
+        for channel, function in zip(range(9, 13), range(190, 194)):
+            self.set_parameter("SERVO%d_FUNCTION" % channel, function)
+        self.set_parameter("RKTN_BOOST_MIN", -0.05)
+        self.set_parameter("RKTN_BOOST_MAX", 0.05)
+        self.set_parameter("RKTN_CST_MIN", -0.1)
+        self.set_parameter("RKTN_CST_MAX", 0.1)
+        self.set_parameter("RKTN_BOOST_THR", 0)
+        self.set_parameter("RKTN_COAST_THR", 0)
+        self.set_parameter("RKTN_BOOST_DAMP", 1)
+        self.set_parameter("RKTN_COAST_DAMP", 1)
+        self.set_parameter("RKTN_BOOST_GMAX", 60)
+        self.set_parameter("RKTN_COAST_GMAX", 60)
+        self.set_parameter("RKTN_XWING_GAIN", 1)
+
+        def outputs():
+            m = self.mav.recv_match(type="SERVO_OUTPUT_RAW", blocking=True, timeout=2)
+            if m is None:
+                raise NotAchievedException("no fin PWM message")
+            return tuple(getattr(m, "servo%d_raw" % c) for c in range(9, 13))
+
+        def check(stage, limit, signs):
+            # All four fins must be observed in the same output frame.
+            # Discard stale frames after changing the simulated IMU bias.
+            self.delay_sim_time(0.5, reason="settle %s gyro bias" % stage)
+            start = self.get_sim_time()
+            count = 0
+            while self.get_sim_time_cached() - start < 1:
+                self.assert_mode(27)
+                pwms = outputs()
+                for channel, pwm, sign in zip(range(9, 13), pwms, signs):
+                    if not 1500 - limit <= pwm <= 1500 + limit:
+                        raise NotAchievedException(
+                            "%s servo%d outside +/- %d: %d" % (stage, channel, limit, pwm))
+                    if not sign and abs(pwm - 1500) > 4:
+                        raise NotAchievedException("%s servo%d not neutral: %d" %
+                                                   (stage, channel, pwm))
+                    if sign and sign * (pwm - 1500) < 12:
+                        raise NotAchievedException(
+                            "%s servo%d wrong sign or neutral: %d" % (stage, channel, pwm))
+                count += 1
+            if count < 2:
+                raise NotAchievedException("too few %s output frames" % stage)
+            self.progress("%s: %d signed frames within PWM limits" % (stage, count))
+
+        self.wait_ready_to_arm()
+        self.arm_vehicle()
+        self.change_mode(27)
+        check("WAIT", 4, (0, 0, 0, 0))
+        for stage, limit in ((1, 29), (2, 54)):
+            self.set_parameter("RKTN_TST_STAGE", stage)
+            for axis, signs in (("X", (1, -1, -1, 1)),
+                                ("Y", (-1, -1, 1, 1)),
+                                ("Z", (1, -1, -1, 1))):
+                for direction in (1, -1):
+                    self.set_parameter("RKTN_TST_G%s" % axis, direction * 3)
+                    check("stage%d %s %d" % (stage, axis, direction),
+                          limit, tuple(direction * sign for sign in signs))
+                    self.set_parameter("RKTN_TST_G%s" % axis, 0)
+        self.set_parameter("RKTN_TST_STAGE", -1)
+        self.change_mode("MANUAL")
+        self.disarm_vehicle(force=True)
+
+    def RocketMode_disabled_rejection(self):
+        """Проверяет запрет входа в ROCKET при RKTN_ENABLE = 0."""
+        self.set_parameter("RKTN_ENABLE", 0)
+        self.send_cmd_do_set_mode(27)
+        self.delay_sim_time(1, reason="проверка запрета отключённого режима ROCKET")
+        if self.mode_is(27):
+            raise NotAchievedException("ROCKET mode entered while disabled")
 
     def disabled_tests(self):
         ret = {
