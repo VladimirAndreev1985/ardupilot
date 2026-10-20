@@ -44,6 +44,12 @@ void ModeRocket::_exit()
 {
 }
 
+bool ModeRocket::sequence_active() const
+{
+    const Rocket::Stage s = (Rocket::Stage)_rocket.get_stage();
+    return s == Rocket::Stage::BOOST || s == Rocket::Stage::COAST;
+}
+
 void ModeRocket::update()
 {
     Rocket &rocket_inst = rocket();
@@ -99,6 +105,26 @@ void ModeRocket::update()
             break;
         }
         handover_started = true;
+
+        // A long failsafe raised during BOOST/COAST was deferred by
+        // Plane::failsafe_long_on_event(). Act on it now instead of the
+        // configured post mode: the operator has lost the link, so FS_LONG_ACTN
+        // decides. Must run before any set_mode, because Mode::enter() clears
+        // long_failsafe_pending.
+        if (plane.long_failsafe_pending) {
+            plane.long_failsafe_pending = false;
+            const int16_t fs_state = plane.failsafe.state;
+            if (fs_state == FAILSAFE_LONG || fs_state == FAILSAFE_GCS) {
+                gcs().send_text(MAV_SEVERITY_WARNING,
+                                "ROCKET: complete, running deferred failsafe");
+                plane.failsafe_long_on_event((enum failsafe_state)fs_state,
+                                             fs_state == FAILSAFE_GCS ?
+                                             ModeReason::GCS_FAILSAFE :
+                                             ModeReason::RADIO_FAILSAFE);
+                break;
+            }
+        }
+
         const Mode::Number resolved_mode = (Mode::Number)rocket_inst.resolve_post_mode((uint8_t)post_target);
         gcs().send_text(MAV_SEVERITY_INFO, "ROCKET: complete, switching mode %u", (unsigned)resolved_mode);
         IGNORE_RETURN(plane.set_mode_by_number(resolved_mode, ModeReason::MISSION_CMD));

@@ -1102,6 +1102,11 @@ public:
     void update() override;
     Rocket &rocket() { return _rocket; }
 
+    // True while the motor burns or the airframe coasts upward, when a
+    // failsafe mode change would hand the vehicle to a mode that cannot
+    // fly it. False on the pad and after handover.
+    bool sequence_active() const;
+
     static const struct AP_Param::GroupInfo var_info[];
     bool _enter() override;
     void _exit() override;
