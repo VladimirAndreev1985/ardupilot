@@ -11143,6 +11143,7 @@ return update()
             self.RocketMode,
             self.RocketX45Auto,
             self.RocketX45StageOutputs,
+            self.RocketMode_disabled_rejection,
         ])
         return ret
 
@@ -11283,9 +11284,9 @@ return update()
         check("WAIT", 4, (0, 0, 0, 0))
         for stage, limit in ((1, 29), (2, 54)):
             self.set_parameter("RKTN_TST_STAGE", stage)
-            for axis, signs in (("X", (1, -1, -1, 1)),
-                                ("Y", (-1, -1, 1, 1)),
-                                ("Z", (1, -1, -1, 1))):
+            for axis, signs in (("X", (-1, 1, 1, -1)),
+                                ("Y", (1, 1, -1, -1)),
+                                ("Z", (1, -1, 1, -1))):
                 for direction in (1, -1):
                     self.set_parameter("RKTN_TST_G%s" % axis, direction * 3)
                     check("stage%d %s %d" % (stage, axis, direction),
