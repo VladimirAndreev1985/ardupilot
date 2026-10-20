@@ -374,6 +374,10 @@ bool SRV_Channel::is_control_surface(SRV_Channel::Function function)
     case Function::k_vtail_left:
     case Function::k_vtail_right:
     case Function::k_airbrake:
+    case Function::k_rocket_fin_lu:
+    case Function::k_rocket_fin_ru:
+    case Function::k_rocket_fin_ld:
+    case Function::k_rocket_fin_rd:
         return true;
 
     default:
