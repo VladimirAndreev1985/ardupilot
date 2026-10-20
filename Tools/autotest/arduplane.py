@@ -11144,6 +11144,7 @@ return update()
             self.RocketX45Auto,
             self.RocketX45StageOutputs,
             self.RocketMode_disabled_rejection,
+            self.RocketFailsafeDeferred,
         ])
         return ret
 
@@ -11303,6 +11304,51 @@ return update()
         self.delay_sim_time(1, reason="проверка запрета отключённого режима ROCKET")
         if self.mode_is(27):
             raise NotAchievedException("ROCKET mode entered while disabled")
+
+    def RocketFailsafeDeferred(self):
+        """Verify a long failsafe during BOOST is deferred until handover."""
+        self.set_parameters({
+            "RKTN_ENABLE": 1,
+            "RKTN_TAIL_MODE": 1,
+            "RKTN_GPS_PROTECT": 0,
+            "RKTN_DBG": 1,
+            "RKTN_BST_HARD": 1000,
+            "RKTN_CST_HARD": 1000,
+            "RKTN_POST_MODE": 0,   # MANUAL, so RTL can only come from the failsafe
+            "RKTN_TST_STAGE": 1,   # hold BOOST
+            "FS_SHORT_ACTN": 3,    # short failsafe disabled, isolate the long one
+            "FS_LONG_ACTN": 1,     # RTL
+            "FS_LONG_TIMEOUT": 1,
+        })
+        for channel, function in zip(range(9, 13), range(190, 194)):
+            self.set_parameter("SERVO%d_FUNCTION" % channel, function)
+
+        self.wait_ready_to_arm()
+        self.arm_vehicle()
+        self.change_mode(27)
+        self.assert_mode(27)
+
+        # Drop RC while the stage is held in BOOST. The long failsafe must fire
+        # but must not change mode: ROCKET keeps stabilizing the airframe.
+        self.context_collect("STATUSTEXT")
+        self.set_parameter("SIM_RC_FAIL", 1)  # no pulses
+        self.wait_statustext("Failsafe On", timeout=15, check_context=True)
+        self.delay_sim_time(3, reason="long failsafe window while BOOST is held")
+        if not self.mode_is(27):
+            raise NotAchievedException("ROCKET abandoned the sequence on failsafe")
+        self.progress("long failsafe deferred, still in ROCKET")
+
+        # Release the hold: the hard timers run BOOST -> COAST -> DONE, and the
+        # handover must replay the deferred failsafe instead of RKTN_POST_MODE.
+        # Collect first: the stage timers already expired, so the handover and
+        # its statustexts can land before the wait starts.
+        self.context_collect("STATUSTEXT")
+        self.set_parameter("RKTN_TST_STAGE", -1)
+        self.wait_statustext("running deferred failsafe", timeout=20, check_context=True)
+        self.wait_mode("RTL", timeout=10)
+
+        self.set_parameter("SIM_RC_FAIL", 0)
+        self.disarm_vehicle(force=True)
 
     def disabled_tests(self):
         ret = {
