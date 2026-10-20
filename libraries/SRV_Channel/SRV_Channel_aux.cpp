@@ -213,6 +213,14 @@ void SRV_Channel::aux_servo_function_setup(void)
         set_angle(1);
         break;
 #endif
+    case k_rocket_fin_lu:
+    case k_rocket_fin_ru:
+    case k_rocket_fin_ld:
+    case k_rocket_fin_rd:
+        // X45 fins are angle outputs: Plane::rocket_x_mixer() writes
+        // -4500..+4500 scaled values after applying normalized mixing.
+        set_angle(4500);
+        break;
     default:
         break;
     }

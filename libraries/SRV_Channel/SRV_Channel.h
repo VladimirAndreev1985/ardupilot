@@ -225,6 +225,13 @@ public:
         k_actuator4             = 187,
         k_actuator5             = 188,
         k_actuator6             = 189,
+        // Rocket X-wing tail fin assignments (RD1-300, X-45 geometry).
+        // The actual servo values are computed by Plane::rocket_x_mixer()
+        // and pushed via SRV_Channels::set_output_scaled().
+        k_rocket_fin_lu         = 190,
+        k_rocket_fin_ru         = 191,
+        k_rocket_fin_ld         = 192,
+        k_rocket_fin_rd         = 193,
         k_nr_aux_servo_functions         ///< This must be the last enum value (only add new values _before_ this one)
     } Function;
 
