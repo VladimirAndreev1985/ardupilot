@@ -74,7 +74,7 @@ public:
 
     // Проверка датчиков и условий перехода между этапами.
     bool detect_launch(const Vector3f &accel, float climb_rate_mps);
-    bool detect_burnout(const Vector3f &accel, float climb_rate_mps) const;
+    bool detect_burnout(const Vector3f &accel);
     bool detect_coast_complete(float climb_rate_mps) const;
 
     // Оценивает качество GPS и возвращает одно из значений GPSHealth.
@@ -85,6 +85,11 @@ public:
     bool      gps_protection_enabled() const { return gps_protect.get() != 0; }
     // Запускает льготный период отсутствия fix при входе в ROCKET.
     void      reset_gps_monitor();
+
+    // Сбрасывает состояние обнаружения этапов при входе в ROCKET. Без этого
+    // признак launch_detected сохранялся от прошлого полёта и повторный вход
+    // в режим сразу переходил в BOOST, минуя ожидание старта.
+    void      reset_sequence();
 
     bool      gps_lost_long_enough() const {
         if (gps_last_fix_ms != 0) {
@@ -204,6 +209,8 @@ private:
     uint32_t  launch_ms;
     uint32_t  burnout_ms;
     bool      launch_detected;
+    uint32_t  launch_candidate_ms;   // начало подтверждения признака старта (0 — нет)
+    uint32_t  burnout_candidate_ms;  // начало подтверждения выгорания (0 — нет)
 
     // --- Текущее состояние контроля GPS ---
     GPSHealth last_gps_health;
@@ -213,6 +220,12 @@ private:
     Location  gps_prev_loc;       // последнее принятое GPS-решение (для обнаружения скачка координат)
     bool      gps_prev_loc_valid;
     uint32_t  gps_last_spoof_ms;  // время последнего уведомления о спуфинге (защита от дублирования GCS)
+
+    // Длительность подтверждения признаков старта и выгорания. Короткие
+    // выбросы вибрации на стартовой позиции и при работе двигателя не должны
+    // переключать этап.
+    static constexpr uint32_t LAUNCH_DEBOUNCE_MS  = 50;
+    static constexpr uint32_t BURNOUT_DEBOUNCE_MS = 100;
 
     // Переводит аппарат на новый этап и фиксирует время перехода
     void enter_stage(Stage s);

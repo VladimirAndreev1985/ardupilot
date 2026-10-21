@@ -35,7 +35,7 @@ const AP_Param::GroupInfo Rocket::var_info[] = {
 
     // @Param: LCH_ACC
     // @DisplayName: Порог ускорения для обнаружения старта ROCKET
-    // @Description: Порог вертикального ускорения, выше которого система считает, что аппарат покинул стартовую позицию.
+    // @Description: Порог осевого ускорения (ось X корпуса, контроллер установлен носом вперёд), при превышении которого режим ROCKET считает, что произошёл старт. На стартовой позиции носом вверх по этой оси измеряется около 9,81 м/с^2, поэтому порог задаётся выше этого значения. Признак подтверждается в течение 50 мс.
     // @Units: m/s/s
     // @Range: 1.0 50.0
     // @Increment: 0.5
@@ -53,7 +53,7 @@ const AP_Param::GroupInfo Rocket::var_info[] = {
 
     // @Param: BURN_ACC
     // @DisplayName: Порог ускорения выгорания двигателя
-    // @Description: Переход из BOOST в COAST при вертикальном ускорении ниже этого порога. Переход также возможен по скорости набора высоты или тайм-ауту BOOST.
+    // @Description: Переход из BOOST в COAST при осевом ускорении (ось X корпуса) ниже этого порога в течение 100 мс. На стартовой позиции носом вверх по этой оси измеряется около 9,81 м/с^2, поэтому порог задаётся немного выше: после выгорания тяга пропадает и остаётся только реакция опоры или свободное падение. Переход также возможен по тайм-ауту BOOST (RKTN_BOOST_TIME) и по предельному таймеру RKTN_BST_HARD.
     // @Units: m/s/s
     // @Range: 0.0 30.0
     // @Increment: 0.5
@@ -274,6 +274,8 @@ Rocket::Rocket()
     launch_ms = 0;
     burnout_ms = 0;
     launch_detected = false;
+    launch_candidate_ms = 0;
+    burnout_candidate_ms = 0;
     logged = {};
 
     // Текущее состояние контроля GPS
@@ -310,6 +312,16 @@ const char* Rocket::stage_name() const
     return "?";
 }
 
+void Rocket::reset_sequence()
+{
+    launch_detected = false;
+    launch_candidate_ms = 0;
+    burnout_candidate_ms = 0;
+    launch_ms = 0;
+    burnout_ms = 0;
+    logged = {};
+}
+
 void Rocket::reset_gps_monitor()
 {
     gps_last_fix_ms = 0;
@@ -338,36 +350,68 @@ bool Rocket::detect_launch(const Vector3f &accel, float climb_rate_mps)
     if (launch_detected) {
         return true;
     }
+    // Ускорение берётся по оси X корпуса: контроллер установлен носом вперёд,
+    // поэтому ось тяги — это X. На стартовой позиции носом вверх акселерометр
+    // показывает по этой оси реакцию опоры около +9,81 м/с^2, а при работе
+    // двигателя значение растёт. Ось Z в связанной системе координат при
+    // вертикальном положении близка к нулю, поэтому порог RKTN_LCH_ACC
+    // (по умолчанию 15) по ней не достигается никогда.
     // Достаточно одного ускорения (GPS и данные о вертикальной скорости не нужны).
     // climb_rate может быть NAN: сравнение >= для NAN ложно,
     // поэтому старт в таком случае может обнаружить только акселерометр.
-    if (accel.z >= launch_accel.get() || climb_rate_mps >= launch_climb.get()) {
-        launch_detected = true;
-        launch_ms = AP_HAL::millis();
-        return true;
+    const bool accel_launch = accel.x >= launch_accel.get();
+    const bool climb_launch = climb_rate_mps >= launch_climb.get();
+    if (!accel_launch && !climb_launch) {
+        launch_candidate_ms = 0;
+        return false;
     }
-    return false;
+
+    // Подтверждение признака старта: одиночный выброс вибрации на стартовой
+    // позиции не должен переводить аппарат в BOOST.
+    const uint32_t now = AP_HAL::millis();
+    if (launch_candidate_ms == 0) {
+        launch_candidate_ms = now;
+    }
+    if (now - launch_candidate_ms < LAUNCH_DEBOUNCE_MS) {
+        return false;
+    }
+    launch_detected = true;
+    launch_ms = now;
+    return true;
 }
 
-bool Rocket::detect_burnout(const Vector3f &accel, float climb_rate_mps) const
+bool Rocket::detect_burnout(const Vector3f &accel)
 {
     if (get_stage() != Stage::BOOST) {
+        burnout_candidate_ms = 0;
         return false;
     }
     // Таймер RKTN_BOOST_TIME не зависит от GPS и остаётся действующим резервом.
     if (AP_HAL::millis() - stage_enter_ms >= (uint32_t)(boost_time.get() * 1000.0f)) {
         return true;
     }
-    if (accel.z <= burn_accel.get()) {
-        return true;
+
+    // Ось X корпуса — ось тяги, см. detect_launch(). Порог RKTN_BURN_ACC
+    // (по умолчанию 11) задан относительно реакции опоры 9,81 м/с^2,
+    // поэтому сравнение по оси Z давало выгорание на первом же цикле BOOST.
+    //
+    // Признак падения (вертикальная скорость <= 0) здесь не используется:
+    // в момент выгорания скорость максимальна, а её снижение до нуля — это
+    // апогей, который проверяется при завершении COAST. Прежнее условие
+    // завершало BOOST на первых циклах, пока оценка вертикальной скорости
+    // ещё не выросла, и двигатель работал при настройках этапа COAST.
+    if (accel.x > burn_accel.get()) {
+        burnout_candidate_ms = 0;
+        return false;
     }
-    // Определение выгорания по вертикальной скорости пропускается при NAN
-    // (нет барометра и скорости EKF): иначе отсутствие данных датчика
-    // ошибочно вызвало бы выгорание уже на первом цикле BOOST.
-    if (!isnan(climb_rate_mps) && climb_rate_mps <= 0.0f) {
-        return true;
+
+    // Подтверждение падения осевого ускорения, чтобы одиночный выброс
+    // не завершал BOOST досрочно.
+    const uint32_t now = AP_HAL::millis();
+    if (burnout_candidate_ms == 0) {
+        burnout_candidate_ms = now;
     }
-    return false;
+    return now - burnout_candidate_ms >= BURNOUT_DEBOUNCE_MS;
 }
 
 bool Rocket::detect_coast_complete(float climb_rate_mps) const

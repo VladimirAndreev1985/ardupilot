@@ -11147,6 +11147,7 @@ return update()
             self.RocketFailsafeDeferred,
             self.RocketPreArm,
             self.RocketGPSFallback,
+            self.RocketAxialDetection,
             self.RocketLogging,
         ])
         return ret
@@ -11302,6 +11303,80 @@ return update()
                           limit, tuple(direction * sign for sign in signs))
                     self.set_parameter("RKTN_TST_G%s" % axis, 0)
         self.set_parameter("RKTN_TST_STAGE", -1)
+        self.change_mode("MANUAL")
+        self.disarm_vehicle(force=True)
+
+    def RocketAxialDetection(self):
+        """Старт и выгорание определяются по осевому ускорению (ось X корпуса)."""
+        # Контроллер установлен носом вперёд, поэтому ось тяги — X корпуса.
+        # Прежде обнаружение читало accel.z: порог старта (RKTN_LCH_ACC = 15)
+        # по этой оси не достигался никогда, а условие выгорания
+        # (accel <= RKTN_BURN_ACC) выполнялось сразу, и двигатель работал при
+        # настройках этапа COAST. Смещение SIM_ACC*_BIAS_X подменяет осевое
+        # ускорение и воспроизводит тягу, которой нет у модели самолёта.
+        self.set_parameters({
+            "RKTN_ENABLE": 1,
+            "RKTN_TAIL_MODE": 1,
+            "RKTN_GPS_PROTECT": 0,
+            "RKTN_LCH_ACC": 15,
+            "RKTN_LCH_CLIMB": 30,   # высокий порог: старт только по ускорению
+            "RKTN_BURN_ACC": 11,
+            "RKTN_BOOST_TIME": 30,  # штатный тайм-аут BOOST не должен срабатывать
+            "RKTN_BST_HARD": 60000,
+            "RKTN_CST_HARD": 60000,
+            "SIM_ACC1_BIAS_X": 0,
+            "SIM_ACC2_BIAS_X": 0,
+            "SIM_ACC3_BIAS_X": 0,
+            # Подменённое ускорение на земле делает воздушную скорость
+            # несогласованной с оценкой EKF, и прошивка отключает датчик,
+            # сбрасывая ARSPD_USE. Этапы ROCKET воздушную скорость не
+            # используют, поэтому датчик отключается заранее.
+            "ARSPD_USE": 0,
+        })
+        for channel, function in zip(range(9, 13), range(190, 194)):
+            self.set_parameter("SERVO%d_FUNCTION" % channel, function)
+
+        self.wait_ready_to_arm()
+        self.arm_vehicle()
+        self.context_collect("STATUSTEXT")
+        self.change_mode(27)
+        self.assert_mode(27)
+        self.delay_sim_time(2, reason="без осевого ускорения старт не обнаружен")
+        # Порог RKTN_LCH_CLIMB намеренно высокий, поэтому единственный путь в
+        # BOOST — осевое ускорение, которого на земле нет.
+        if self.statustext_in_collections("RKTN: stage=BOOST") is not None:
+            raise NotAchievedException("старт обнаружен без осевого ускорения")
+
+        # Тяга: осевое ускорение выше порога старта. Смещение задаётся всем
+        # IMU, иначе EKF3 признает акселерометр 1 несогласованным, переключит
+        # основной экземпляр на IMU2 и подменённое ускорение исчезнет.
+        self.context_collect("STATUSTEXT")
+        self.set_parameters({
+            "SIM_ACC1_BIAS_X": 20,
+            "SIM_ACC2_BIAS_X": 20,
+            "SIM_ACC3_BIAS_X": 20,
+        })
+        self.wait_statustext("RKTN: stage=BOOST", timeout=10, check_context=True)
+
+        # Пока ускорение держится, BOOST не завершается. На земле вертикальная
+        # скорость около нуля: прежнее условие выгорания по падению скорости
+        # завершало этап уже на первом цикле.
+        self.context_collect("STATUSTEXT")
+        self.delay_sim_time(3, reason="BOOST продолжается при работающем двигателе")
+        if not self.mode_is(27):
+            raise NotAchievedException("режим ROCKET покинут во время BOOST")
+        if self.statustext_in_collections("RKTN: stage=COAST") is not None:
+            raise NotAchievedException("BOOST завершён досрочно при работающем двигателе")
+
+        # Выгорание: осевое ускорение падает ниже RKTN_BURN_ACC.
+        self.context_collect("STATUSTEXT")
+        self.set_parameters({
+            "SIM_ACC1_BIAS_X": 0,
+            "SIM_ACC2_BIAS_X": 0,
+            "SIM_ACC3_BIAS_X": 0,
+        })
+        self.wait_statustext("RKTN: stage=COAST", timeout=10, check_context=True)
+        self.progress("ROCKET: старт и выгорание обнаружены по оси X корпуса")
         self.change_mode("MANUAL")
         self.disarm_vehicle(force=True)
 

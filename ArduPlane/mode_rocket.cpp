@@ -29,6 +29,7 @@ bool ModeRocket::_enter()
     handover_started = false;
     gcs().send_text(MAV_SEVERITY_INFO, "ROCKET: waiting for launch");
     rocket().set_stage(Rocket::Stage::WAIT_LAUNCH);
+    rocket().reset_sequence();
     rocket().reset_gps_monitor();
     switch (rocket().post_mode()) {
     case Rocket::PostMode::MANUAL: post_target = Mode::Number::MANUAL; break;
@@ -92,7 +93,7 @@ void ModeRocket::update()
         }
         break;
     case Rocket::Stage::BOOST:
-        if (rocket_inst.detect_burnout(accel, climb_rate)) {
+        if (rocket_inst.detect_burnout(accel)) {
             rocket_inst.set_stage(Rocket::Stage::COAST);
         }
         break;
