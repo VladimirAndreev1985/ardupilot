@@ -16,6 +16,7 @@
 #include <SITL/SIM_Helicopter.h>
 #include <SITL/SIM_SingleCopter.h>
 #include <SITL/SIM_Plane.h>
+#include <SITL/SIM_Rocket.h>
 #include <SITL/SIM_Glider.h>
 #include <SITL/SIM_QuadPlane.h>
 #include <SITL/SIM_Rover.h>
@@ -187,6 +188,7 @@ static const struct {
     { "balloon",            Balloon::create },
     { "glider",             Glider::create },
     { "plane",              Plane::create },
+    { "rocket",             Rocket::create },
     { "calibration",        Calibration::create },
     { "vectored",           Submarine::create },
     { "vectored_6dof",      Submarine::create },
