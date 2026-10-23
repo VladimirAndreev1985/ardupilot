@@ -1,0 +1,78 @@
+# SITL defaults for the rocket model.
+#
+# Mirrors ArduPlane/rocket_params_example.parm, trimmed to what SITL needs:
+# the fin outputs, the ROCKET mode on FLTMODE1, and limits wide enough for a
+# near-vertical airframe. Flight-hardware specifics (CRSF, MSP, battery pins)
+# are left out.
+
+# ROCKET on the first mode slot, FBWA as the hand-over target
+FLTMODE1 27
+FLTMODE6 5
+INITIAL_MODE 27
+
+# Launch detection and phases
+RKT_ACCEL_THR 15
+RKT_ACCEL_TIME 50
+RKT_RAIL_TIME 100
+RKT_BST_PTCH_LIM 15
+RKT_BST_ROLL_LIM 10
+RKT_BST_YAW_LIM 15
+RKT_BST_TIME_MAX 3.0
+RKT_CST_TIME_MAX 15
+# Apogee is detected by climb rate, which needs no GPS. The old speed test
+# is off: a 24 g boost clips the +-16g IMU, so dead-reckoned speed reads low
+# and the test fired while the rocket was still climbing.
+RKT_TRANS_VZ 5
+RKT_TRANS_SPD 0
+RKT_TRANS_MODE 5
+RKT_ABORT_LIM 60
+RKT_ABORT_RATE 360
+RKT_FIN_ANGLE 0
+RKT_DRAG_K 0.00067
+RKT_R_KP 0.01
+RKT_R_KD 0.05
+RKT_SPD_SCL_REF 30
+RKT_SPD_SCL_MIN 0.2
+RKT_SPD_SCL_MAX 2.0
+
+# Four fins on outputs 1-4. SIM_Rocket reads these same outputs.
+SERVO1_FUNCTION 190
+SERVO2_FUNCTION 191
+SERVO3_FUNCTION 192
+SERVO4_FUNCTION 193
+
+# Output 9 is the igniter. k_none lets MAV_CMD_DO_SET_SERVO drive it, so
+# ignition is "servo 9 2000" in MAVProxy with no RC transmitter needed.
+SERVO9_FUNCTION 0
+SERVO9_MIN 1000
+SERVO9_MAX 2000
+SERVO9_TRIM 1000
+
+# A rocket points straight up, so the normal plane limits have to be opened up.
+PTCH_LIM_MAX_DEG 90
+PTCH_LIM_MIN_DEG -90
+ROLL_LIMIT_DEG 90
+
+# No throttle on this airframe
+THR_FAILSAFE 0
+ARMING_RUDDER 0
+
+SCHED_LOOP_RATE 400
+LOG_BITMASK 1582775
+LOG_DISARMED 1
+
+# Small INS offsets so the INS is recognised as calibrated, as the other
+# SITL models do. Without these, arming fails on "3D Accel calibration needed".
+INS_ACCOFFS_X   0.001
+INS_ACCOFFS_Y   0.001
+INS_ACCOFFS_Z   0.001
+INS_ACCSCAL_X   1.001
+INS_ACCSCAL_Y   1.001
+INS_ACCSCAL_Z   1.001
+INS_ACC2OFFS_X   0.001
+INS_ACC2OFFS_Y   0.001
+INS_ACC2OFFS_Z   0.001
+INS_ACC2SCAL_X   1.001
+INS_ACC2SCAL_Y   1.001
+INS_ACC2SCAL_Z   1.001
+INS_GYR_CAL      0

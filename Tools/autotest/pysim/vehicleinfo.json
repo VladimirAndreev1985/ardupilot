@@ -506,6 +506,14 @@
                 "waf_target": "bin/arduplane",
                 "default_params_filename": "default_params/plane-tailsitter.parm"
             },
+            "rocket": {
+                "waf_target": "bin/arduplane",
+                "default_params_filename": "models/rocket.parm"
+            },
+            "rocket-x45": {
+                "waf_target": "bin/arduplane",
+                "default_params_filename": "models/rocket-x45.parm"
+            },
             "plane-jet": {
                 "waf_target": "bin/arduplane",
                 "default_params_filename": [
