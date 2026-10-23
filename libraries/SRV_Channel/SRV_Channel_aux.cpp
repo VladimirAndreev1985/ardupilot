@@ -213,6 +213,13 @@ void SRV_Channel::aux_servo_function_setup(void)
         set_angle(1);
         break;
 #endif
+    case k_rocket_fin1:
+    case k_rocket_fin2:
+    case k_rocket_fin3:
+    case k_rocket_fin4:
+        // Rocket fins use angle mode like other control surfaces
+        set_angle(4500);
+        break;
     default:
         break;
     }

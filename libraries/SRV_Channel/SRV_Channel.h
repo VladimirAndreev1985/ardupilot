@@ -225,6 +225,10 @@ public:
         k_actuator4             = 187,
         k_actuator5             = 188,
         k_actuator6             = 189,
+        k_rocket_fin1           = 190,           ///< Rocket fin 1 (typically top/up in + config)
+        k_rocket_fin2           = 191,           ///< Rocket fin 2 (typically right in + config)
+        k_rocket_fin3           = 192,           ///< Rocket fin 3 (typically bottom/down in + config)
+        k_rocket_fin4           = 193,           ///< Rocket fin 4 (typically left in + config)
         k_nr_aux_servo_functions         ///< This must be the last enum value (only add new values _before_ this one)
     } Function;
 
