@@ -111,6 +111,7 @@
 // Local modules
 #include "defines.h"
 #include "mode.h"
+#include "mode_rocket.h"
 
 #if AP_SCRIPTING_ENABLED
 #include <AP_Scripting/AP_Scripting.h>
@@ -181,6 +182,9 @@ public:
     friend class ModeLoiterAltQLand;
 #if MODE_AUTOLAND_ENABLED
     friend class ModeAutoLand;
+#endif
+#if MODE_ROCKET_ENABLED
+    friend class ModeRocket;
 #endif
 #if AP_EXTERNAL_CONTROL_ENABLED
     friend class AP_ExternalControl_Plane;
@@ -336,6 +340,9 @@ private:
     ModeTakeoff mode_takeoff;
 #if MODE_AUTOLAND_ENABLED
     ModeAutoLand mode_autoland;
+#endif
+#if MODE_ROCKET_ENABLED
+    ModeRocket mode_rocket;
 #endif
 #if HAL_SOARING_ENABLED
     ModeThermal mode_thermal;
@@ -1204,6 +1211,9 @@ private:
     void channel_function_mixer(SRV_Channel::Function func1_in, SRV_Channel::Function func2_in,
                                 SRV_Channel::Function func1_out, SRV_Channel::Function func2_out) const;
     void flaperon_update();
+#if MODE_ROCKET_ENABLED
+    void rocket_fin_update();
+#endif
     void indicate_waiting_for_rud_neutral_to_takeoff(void);
 
     // is_flying.cpp

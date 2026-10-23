@@ -313,6 +313,84 @@ void Plane::dspoiler_update(void)
     SRV_Channels::set_output_scaled(SRV_Channel::k_dspoilerRight2, dspoiler_inner_right);
 }
 
+#if MODE_ROCKET_ENABLED
+/*
+  Rocket fin mixer for 4-fin cruciform tails.
+  Handles any mounting angle between + and X via RKT_FIN_ANGLE.
+
+  Fin n sits at phi_n = RKT_FIN_ANGLE + 90*(n-1), measured from "up" and
+  increasing clockwise when viewed from the rear:
+    + config (RKT_FIN_ANGLE=0):  fin1=top,       fin2=right,
+                                 fin3=bottom,    fin4=left
+    X config (RKT_FIN_ANGLE=45): fin1=top-right, fin2=bottom-right,
+                                 fin3=bottom-left, fin4=top-left
+
+  A fin deflection produces a force tangential to the body, so every fin has
+  the same roll authority, while its pitch and yaw authority depend on where
+  it sits around the body:
+    fin_n = aileron + elevator*sin(phi_n) - rudder*cos(phi_n)
+
+  At RKT_FIN_ANGLE=0 that gives the plain + mixing, where the vertical pair
+  acts as a rudder and the horizontal pair as an elevator:
+    fin1 = aileron - rudder      (top)
+    fin2 = aileron + elevator    (right)
+    fin3 = aileron + rudder      (bottom)
+    fin4 = aileron - elevator    (left)
+
+  At RKT_FIN_ANGLE=45 every fin carries both axes with 0.707 cross terms:
+    fin1 = aileron + 0.707*( elevator - rudder)
+    fin2 = aileron + 0.707*( elevator + rudder)
+    fin3 = aileron + 0.707*(-elevator + rudder)
+    fin4 = aileron + 0.707*(-elevator - rudder)
+
+  Per-fin direction is then trimmed with SERVOn_REVERSED.
+*/
+void Plane::rocket_fin_update(void)
+{
+    // Nothing to do if no fin is assigned to an output. This keeps the
+    // mixer inert on conventional plane airframes using the same firmware.
+    if (!SRV_Channels::function_assigned(SRV_Channel::k_rocket_fin1) &&
+        !SRV_Channels::function_assigned(SRV_Channel::k_rocket_fin2) &&
+        !SRV_Channels::function_assigned(SRV_Channel::k_rocket_fin3) &&
+        !SRV_Channels::function_assigned(SRV_Channel::k_rocket_fin4)) {
+        return;
+    }
+
+    // Get base control surface outputs
+    const float aileron = SRV_Channels::get_output_scaled(SRV_Channel::k_aileron);
+    const float elevator = SRV_Channels::get_output_scaled(SRV_Channel::k_elevator);
+    const float rudder = SRV_Channels::get_output_scaled(SRV_Channel::k_rudder);
+
+    // Fin mounting angle is a fixed airframe property, so it is read in every
+    // flight mode. The fins remain the only control surfaces after ROCKET mode
+    // hands over to FBWA/RTL/LOITER/AUTO, so the mixer must keep running there.
+    const float fin_angle_deg = constrain_float(mode_rocket.get_fin_angle(), 0, 45);
+
+    const float angle_rad = radians(fin_angle_deg);
+    const float c = cosf(angle_rad);
+    const float s = sinf(angle_rad);
+
+    // fin_n = aileron + elevator*sin(phi_n) - rudder*cos(phi_n), with
+    // phi1 = angle, phi2 = angle+90, phi3 = angle+180, phi4 = angle+270
+    float fin1 = aileron + s * elevator - c * rudder;
+    float fin2 = aileron + c * elevator + s * rudder;
+    float fin3 = aileron - s * elevator + c * rudder;
+    float fin4 = aileron - c * elevator - s * rudder;
+
+    // Clamp to the servo angle range configured in SRV_Channel_aux.cpp
+    fin1 = constrain_float(fin1, -4500, 4500);
+    fin2 = constrain_float(fin2, -4500, 4500);
+    fin3 = constrain_float(fin3, -4500, 4500);
+    fin4 = constrain_float(fin4, -4500, 4500);
+
+    // Output to rocket fin servo functions
+    SRV_Channels::set_output_scaled(SRV_Channel::k_rocket_fin1, fin1);
+    SRV_Channels::set_output_scaled(SRV_Channel::k_rocket_fin2, fin2);
+    SRV_Channels::set_output_scaled(SRV_Channel::k_rocket_fin3, fin3);
+    SRV_Channels::set_output_scaled(SRV_Channel::k_rocket_fin4, fin4);
+}
+#endif // MODE_ROCKET_ENABLED
+
 /*
  set airbrakes based on reverse thrust and/or manual input RC channel
  */
@@ -1047,6 +1125,11 @@ void Plane::servos_output(void)
 
     // implement differential spoilers
     dspoiler_update();
+
+#if MODE_ROCKET_ENABLED
+    // implement rocket fin mixer
+    rocket_fin_update();
+#endif
 
     //  set control surface servos to neutral
     landing_neutral_control_surface_servos();

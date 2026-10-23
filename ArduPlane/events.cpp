@@ -98,6 +98,11 @@ void Plane::rc_failsafe_short_on_event()
     case Mode::Number::QRTL:
     case Mode::Number::LOITER_ALT_QLAND:
 #endif
+#if MODE_ROCKET_ENABLED
+    // ROCKET is a short, ballistic phase with its own state machine and abort
+    // handling, so a radio failsafe must not pull it out of the launch
+    case Mode::Number::ROCKET:
+#endif
     case Mode::Number::INITIALISING:
         break;
     }
@@ -230,6 +235,10 @@ void Plane::failsafe_long_on_event(enum failsafe_state fstype, ModeReason reason
     case Mode::Number::QLAND:
     case Mode::Number::QRTL:
     case Mode::Number::LOITER_ALT_QLAND:
+#endif
+#if MODE_ROCKET_ENABLED
+    // see the short failsafe handler: ROCKET manages its own transitions
+    case Mode::Number::ROCKET:
 #endif
     case Mode::Number::INITIALISING:
 #if MODE_AUTOLAND_ENABLED

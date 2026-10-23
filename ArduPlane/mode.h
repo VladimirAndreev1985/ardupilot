@@ -21,6 +21,10 @@
 #define MODE_AUTOLAND_ENABLED 1
 #endif
 
+#ifndef MODE_ROCKET_ENABLED
+#define MODE_ROCKET_ENABLED 1
+#endif
+
 #include <AP_Quicktune/AP_Quicktune.h>
 
 class AC_PosControl;
@@ -69,6 +73,9 @@ public:
 #endif
 #if MODE_AUTOLAND_ENABLED
         AUTOLAND      = 26,
+#endif
+#if MODE_ROCKET_ENABLED
+        ROCKET        = 27,
 #endif
 
     // Mode number 30 reserved for "offboard" for external/lua control.

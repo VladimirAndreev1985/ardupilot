@@ -47,6 +47,10 @@ void GCS_Plane::update_vehicle_sensor_status_flags(void)
 #endif  // HAL_QUADPLANE_ENABLED
     case Mode::Number::FLY_BY_WIRE_B:
     case Mode::Number::CRUISE:
+#if MODE_ROCKET_ENABLED
+    // ROCKET holds attitude against the launch reference, with no position control
+    case Mode::Number::ROCKET:
+#endif
         rate_controlled = true;
         attitude_stabilized = true;
         break;
