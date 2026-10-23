@@ -1,0 +1,208 @@
+# ArduPlane Rocket Configuration for Matek H743 Slim v4
+# Target: 60mm diameter model rocket with 4-fin tail control
+# Motor: RD1-300 (280-300 Ns, 330N peak, ~2s burn)
+# Author: VladimirAndreev1985
+
+# ============== FRAME TYPE ==============
+# Use Plane (not QuadPlane)
+# Set Q_ENABLE = 0 if QuadPlane features are compiled in
+
+# ============== ROCKET MODE PARAMETERS ==============
+# Flight mode number: ROCKET = 27
+FLTMODE1 27
+FLTMODE6 5         # FBWA for landing/recovery
+
+# Launch detection
+RKT_ACCEL_THR 15   # m/s^2, acceleration threshold for launch detect
+RKT_ACCEL_TIME 50  # ms, time to confirm launch
+
+# Rail phase - keep controls neutral while on rail
+RKT_RAIL_TIME 100  # ms, estimated time on 730mm rail at ~20m/s avg
+
+# Boost phase limits
+RKT_BST_PTCH_LIM 15  # deg, max pitch deviation from launch angle
+RKT_BST_ROLL_LIM 10  # deg, max roll deviation
+RKT_BST_YAW_LIM 15   # deg, max yaw deviation
+RKT_BST_TIME_MAX 3.0 # s, maximum boost time (motor is ~2s)
+
+# Coast phase
+RKT_CST_TIME_MAX 15  # s, max coast before forced transition
+
+# Apogee detection. The climb-rate test is the primary one: vertical speed
+# falling to RKT_TRANS_VZ means apogee regardless of how fast the airframe
+# is still moving. The old speed test is disabled by default (0) because
+# dead reckoning badly underestimates speed through boost: a 24 g launch
+# clips the +-16g IMU, so the integrated speed read 30 m/s while the rocket
+# was still climbing at 37 m/s, which fired the transition far too early.
+RKT_TRANS_VZ 5       # m/s, transition when climb rate drops below this
+RKT_TRANS_SPD 0      # m/s, 0 = disabled; speed-based apogee test
+
+# Transition mode: 5=FBWA, 11=RTL, 12=LOITER, 10=AUTO
+RKT_TRANS_MODE 5
+
+# Abort thresholds. ABORT_LIM is attitude deviation from the launch
+# attitude during RAIL/BOOST, not absolute tilt, so an angled launch does
+# not trip it. ABORT_RATE catches tumbling after burnout, in COAST.
+RKT_ABORT_LIM 60     # deg, attitude deviation triggering abort
+RKT_ABORT_RATE 360   # deg/s, body rate triggering abort in coast; 0 = off
+
+# ============== GPS-DENIED OPERATION ==============
+# This airframe is built to fly without GPS. RKT_GPS_PROT watches GPS
+# health (fix, sat count, position jumps) and, if it is unhealthy at
+# apogee, hands over to RKT_GPS_FBK instead of RKT_TRANS_MODE, so the
+# rocket never enters a mode that needs a position it does not have.
+RKT_GPS_PROT 1       # 1 = enable GPS health monitoring
+RKT_GPS_FBK 5        # fallback mode when GPS is unhealthy (5=FBWA)
+RKT_GPS_LOST_MS 2000 # ms without a healthy fix before GPS is declared lost
+RKT_GPS_JUMP_M 150   # m position jump that marks GPS as untrustworthy
+RKT_GPS_MIN_SAT 6    # minimum satellites for a healthy fix
+
+# Fin configuration: 0=cross(+), 45=X
+RKT_FIN_ANGLE 0
+
+# Speed scaler for control surfaces
+RKT_SPD_SCL_REF 30   # m/s, speed the P/D gains below are tuned at
+RKT_SPD_SCL_MIN 0.2  # At high speed (240 m/s)
+RKT_SPD_SCL_MAX 2.0  # At low speed
+
+# Inertial velocity integrator drag, as accel = RKT_DRAG_K * v^2.
+# Only used when there is no GPS or airspeed, which is the case this airframe
+# is built for. Compute as 0.5*rho*Cd*A/mass: 60mm body (A = 0.00283 m^2),
+# Cd ~0.5, 1.3 kg => 0.00067. SITL showed the old hardcoded 0.01 made the
+# integrator read 68 m/s against a true 180 m/s.
+RKT_DRAG_K 0.00067
+
+# Roll gains. SITL (rocket model, 60mm/730mm, 1.4 kg) diverged to a 180 deg
+# roll at 2000 deg/s with the 1.0 default, and also at 0.05. 0.01/0.05 held
+# roll inside 3 deg. Roll inertia on this airframe is only ~8e-4 kg m^2, so
+# fin roll authority is very high relative to it. Start low and work up.
+RKT_R_KP 0.01
+RKT_R_KD 0.05
+
+# Pitch and yaw gains. Pitch/yaw inertia is roughly 0.06 kg m^2 on this
+# airframe, nearly two orders of magnitude above roll, so these tolerate
+# much higher gains than the roll pair above.
+RKT_P_KP 0.8
+RKT_P_KD 0.3
+RKT_Y_KP 0.5
+RKT_Y_KD 0.2
+
+# Launch angle. -1 means capture the actual attitude at launch detect and
+# hold that, which is what you want on a rail: no need to tell the vehicle
+# the rail angle, it measures it.
+RKT_LAUNCH_ANG -1
+
+# ============== SERVO CONFIGURATION ==============
+# Rocket fins on outputs 1-4
+SERVO1_FUNCTION 190  # k_rocket_fin1 (top/up)
+SERVO2_FUNCTION 191  # k_rocket_fin2 (right)
+SERVO3_FUNCTION 192  # k_rocket_fin3 (bottom/down)
+SERVO4_FUNCTION 193  # k_rocket_fin4 (left)
+
+# Servo limits (adjust for your servos)
+SERVO1_MIN 1000
+SERVO1_MAX 2000
+SERVO1_TRIM 1500
+SERVO1_REVERSED 0
+
+SERVO2_MIN 1000
+SERVO2_MAX 2000
+SERVO2_TRIM 1500
+SERVO2_REVERSED 0
+
+SERVO3_MIN 1000
+SERVO3_MAX 2000
+SERVO3_TRIM 1500
+SERVO3_REVERSED 0
+
+SERVO4_MIN 1000
+SERVO4_MAX 2000
+SERVO4_TRIM 1500
+SERVO4_REVERSED 0
+
+# Parachute on SERVO5 (if used)
+# SERVO5_FUNCTION 27  # Parachute release
+# CHUTE_ENABLED 1
+# CHUTE_TYPE 10       # Servo release
+# CHUTE_SERVO_ON 1900
+# CHUTE_SERVO_OFF 1100
+
+# ============== AHRS / EKF CONFIGURATION ==============
+# EKF3 is recommended
+AHRS_EKF_TYPE 3
+EK3_ENABLE 1
+EK3_SRC1_POSXY 3   # GPS (if available)
+EK3_SRC1_VELXY 3   # GPS
+EK3_SRC1_POSZ 1    # Baro
+EK3_SRC1_VELZ 0    # None (or 3 for GPS)
+EK3_SRC1_YAW 1     # Compass (or 0 if no compass)
+
+# For GPS-denied flight, disable GPS requirement:
+# ARMING_SKIPCHK 8   # Bit 3 = skip "GPS lock" arming check
+# EK3_SRC1_POSXY 0
+# EK3_SRC1_VELXY 0
+
+# Accel limits - ICM42688P is ±16g, rocket may exceed this!
+# Consider using gyros primarily during boost
+INS_ACCEL_FILTER 20
+INS_GYRO_FILTER 40
+
+# ============== GPS CONFIGURATION (if installed) ==============
+GPS1_TYPE 1         # Auto
+GPS1_GNSS_MODE 0    # All constellations
+SERIAL3_PROTOCOL 5  # GPS on Serial3
+
+# ============== COMPASS (if installed) ==============
+COMPASS_ENABLE 1
+COMPASS_USE 1
+
+# ============== BAROMETER ==============
+BARO_PRIMARY 0
+# Ram air compensation may be needed at high speed
+
+# ============== BATTERY MONITOR ==============
+BATT_MONITOR 4      # Analog voltage and current
+BATT_VOLT_PIN 10
+BATT_CURR_PIN 11
+BATT_VOLT_MULT 11.0
+BATT_AMP_PERVLT 17.0
+
+# ============== LOGGING ==============
+# Fast+Medium Attitude, GPS, Control/Nav Tuning, IMU, Battery, Compass,
+# RC In-Out, Raw IMU, Fullrate Attitude. Raw+Fullrate matter here: they are
+# what lets you see the real accel peak and any IMU clipping during boost.
+LOG_BITMASK 1582775
+LOG_FILE_DSRMROT 1  # New log on disarm
+LOG_DISARMED 1      # Log while disarmed (for pre-launch)
+LOG_REPLAY 1        # Enable replay logging
+
+# ============== TELEMETRY ==============
+# CRSF on Serial1 (for TBS Crossfire)
+SERIAL1_PROTOCOL 23
+SERIAL1_BAUD 416    # 416000 for CRSF
+
+# MSP DisplayPort for Walksnail (on Serial2)
+SERIAL2_PROTOCOL 33 # MSP DisplayPort
+SERIAL2_BAUD 115
+OSD_TYPE 3          # MSP
+
+# ============== ARMING ==============
+ARMING_RUDDER 0     # Disable rudder arming
+# ARMING_CHECK was replaced upstream by ARMING_SKIPCHK (inverted meaning:
+# it is a bitmask of checks to SKIP). 0 = run every check.
+ARMING_SKIPCHK 0
+
+# ============== FLIGHT LIMITS ==============
+# These are degrees in current master (renamed from the old centidegree
+# LIM_PITCH_MAX / LIM_PITCH_MIN / LIM_ROLL_CD).
+PTCH_LIM_MAX_DEG 90  # rocket can point straight up
+PTCH_LIM_MIN_DEG -90
+ROLL_LIMIT_DEG 90
+
+# ============== MISCELLANEOUS ==============
+FS_SHORT_ACTN 0     # No action on short failsafe (we're going ballistic anyway)
+FS_LONG_ACTN 0
+THR_FAILSAFE 0      # Disable throttle failsafe
+
+# Scheduler - high loop rate for responsive control
+SCHED_LOOP_RATE 400
