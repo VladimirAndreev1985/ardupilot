@@ -24,6 +24,7 @@ RKT_BST_PTCH_LIM 15  # deg, max pitch deviation from launch angle
 RKT_BST_ROLL_LIM 10  # deg, max roll deviation
 RKT_BST_YAW_LIM 15   # deg, max yaw deviation
 RKT_BST_TIME_MAX 3.0 # s, maximum boost time (motor is ~2s)
+RKT_BURN_TIME 100    # ms, low accel must persist this long to end boost
 
 # Coast phase
 RKT_CST_TIME_MAX 15  # s, max coast before forced transition
@@ -56,6 +57,14 @@ RKT_GPS_FBK 5        # fallback mode when GPS is unhealthy (5=FBWA)
 RKT_GPS_LOST_MS 2000 # ms without a healthy fix before GPS is declared lost
 RKT_GPS_JUMP_M 150   # m position jump that marks GPS as untrustworthy
 RKT_GPS_MIN_SAT 6    # minimum satellites for a healthy fix
+RKT_GPS_HDOP 2.5     # HDOP above which the fix counts as degraded
+
+# EKF behaviour under jamming. Bit 0 (JammingExpected) makes EKF3 re-run the
+# preflight GPS quality checks before trusting GPS again after a dropout of
+# more than 2 s, instead of snapping to the first fix it sees. On a rocket the
+# fix is routinely lost at launch and a bad reacquired position would be fused
+# straight into the solution the handover depends on.
+EK3_OPTIONS 1
 
 # Fin configuration: 0=cross(+), 45=X
 RKT_FIN_ANGLE 0

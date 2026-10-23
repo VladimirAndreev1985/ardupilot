@@ -248,6 +248,22 @@ const AP_Param::GroupInfo ModeRocket::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("GPS_MIN_SAT", 30, ModeRocket, gps_min_sat, 6),
 
+    // @Param: GPS_HDOP
+    // @DisplayName: Maximum HDOP for a healthy fix
+    // @Description: HDOP above which the fix is treated as degraded. HDOP is the geometric uncertainty of the horizontal solution, so a receiver under partial jamming can keep reporting enough satellites while the solution itself decays. Satellite count alone does not catch that. Set 0 to check satellite count only.
+    // @Range: 0 10
+    // @Increment: 0.1
+    // @User: Advanced
+    AP_GROUPINFO("GPS_HDOP", 31, ModeRocket, gps_max_hdop, 2.5),
+
+    // @Param: BURN_TIME
+    // @DisplayName: Burnout confirmation time
+    // @Description: Time the forward acceleration must stay below the burnout threshold before BOOST ends. A single accelerometer dropout, or the vibration notch of a motor running rough, would otherwise end BOOST early and fly the rest of the burn on COAST settings. Mirrors RKT_ACCEL_TIME on the launch side. Set 0 to react on the first sample.
+    // @Range: 0 500
+    // @Units: ms
+    // @User: Advanced
+    AP_GROUPINFO("BURN_TIME", 32, ModeRocket, burnout_confirm_ms, 100),
+
     AP_GROUPEND
 };
 
@@ -256,6 +272,7 @@ ModeRocket::ModeRocket() :
     current_phase(Phase::PAD),
     phase_start_ms(0),
     launch_detect_start_ms(0),
+    burnout_candidate_ms(0),
     launch_accel_count(0),
     dr_velocity_ned(0, 0, 0),
     dr_velocity_valid(false),
@@ -277,6 +294,7 @@ bool ModeRocket::_enter()
     current_phase = Phase::PAD;
     phase_start_ms = AP_HAL::millis();
     launch_detect_start_ms = 0;
+    burnout_candidate_ms = 0;
     launch_accel_count = 0;
     dr_velocity_ned.zero();
     // The rocket is stationary on the pad, so zero velocity is a known-good
@@ -562,10 +580,20 @@ void ModeRocket::check_phase_transition()
         case Phase::BOOST: {
             if (pt >= (uint32_t)(boost_time_max * 1000)) {
                 enter_phase(Phase::COAST);
-            } else {
-                if (pt > 500 && get_forward_accel() < launch_accel_threshold * 0.3f) {
+                break;
+            }
+            // Burnout by acceleration, confirmed over RKT_BURN_TIME. The
+            // 500 ms guard keeps the ramp-up at ignition from reading as a
+            // burnout before the motor reaches full thrust.
+            if (pt > 500 && get_forward_accel() < launch_accel_threshold * 0.3f) {
+                if (burnout_candidate_ms == 0) {
+                    burnout_candidate_ms = now;
+                }
+                if (now - burnout_candidate_ms >= (uint32_t)burnout_confirm_ms) {
                     enter_phase(Phase::COAST);
                 }
+            } else {
+                burnout_candidate_ms = 0;
             }
             break;
         }
@@ -603,6 +631,8 @@ void ModeRocket::enter_phase(Phase p)
 {
     current_phase = p;
     phase_start_ms = AP_HAL::millis();
+    // Each phase starts its own burnout confirmation window.
+    burnout_candidate_ms = 0;
     const float climb = get_climb_rate();
     gcs().send_text(MAV_SEVERITY_INFO, "Rocket: %s v=%.1f vz=%.1f",
                     get_phase_name(), (double)inertial_velocity_mps, (double)climb);
@@ -717,8 +747,15 @@ void ModeRocket::update_gps_health()
     gps_prev_loc = loc;
     gps_prev_loc_valid = true;
 
-    if (health == GPSHealth::OK && gps.num_sats() < (uint8_t)gps_min_sat.get()) {
-        health = GPSHealth::DEGRADED;
+    if (health == GPSHealth::OK) {
+        // Satellite count and HDOP are independent symptoms: a receiver under
+        // partial jamming can hold the satellite count while the geometry of
+        // the solution decays, so both are checked.
+        const float hdop = gps.get_hdop() * 0.01f;   // AP_GPS reports HDOP*100
+        if (gps.num_sats() < (uint8_t)gps_min_sat.get() ||
+            (is_positive(gps_max_hdop) && hdop > gps_max_hdop)) {
+            health = GPSHealth::DEGRADED;
+        }
     }
 
     if (health == GPSHealth::SPOOFED && last_gps_health != GPSHealth::SPOOFED) {

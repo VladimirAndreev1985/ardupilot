@@ -72,6 +72,11 @@ private:
     Phase current_phase;
     uint32_t phase_start_ms;
     uint32_t launch_detect_start_ms;
+    // Start of the sustained low-acceleration window that ends BOOST, 0 when
+    // acceleration is above the threshold. Debouncing burnout the same way
+    // launch is debounced keeps a single dropped accel sample from cutting
+    // the boost phase short.
+    uint32_t burnout_candidate_ms;
     
     // Launch detection
     bool detect_launch();
@@ -156,6 +161,8 @@ private:
     AP_Int32 gps_lost_ms;               // ms without 3D fix before GPS is LOST
     AP_Int16 gps_jump_m;                // m, position jump that implies spoofing
     AP_Int8  gps_min_sat;               // satellites below which GPS is DEGRADED
+    AP_Float gps_max_hdop;              // HDOP above which GPS is DEGRADED
+    AP_Int16 burnout_confirm_ms;        // ms, low accel must persist to end BOOST
     
     // PID gains (configurable)
     AP_Float kp_pitch;
